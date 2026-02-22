@@ -1,6 +1,6 @@
 --!strict
 -- CleanMenu.lua
--- HIGGI v2 Polished Layout
+-- HIGGI v2 Polished Layout (Correct Grid Width)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -69,14 +69,8 @@ end
 local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
 
 local function loadModule(url)
-	local ok, code = pcall(function()
-		return game:HttpGet(url)
-	end)
-	if not ok then
-		error(code)
-	end
-	local chunk = loadstring(code)
-	return chunk()
+	local code = game:HttpGet(url)
+	return loadstring(code)()
 end
 
 local Toggles = loadModule(TOGGLES_URL)
@@ -155,7 +149,7 @@ local close = make("TextButton", {
 	Size = UDim2.fromOffset(32, 28),
 	Position = UDim2.new(1, -42, 0, 8),
 	BackgroundColor3 = CONFIG.Bg2,
-	TextColor3 = CONFIG.Text,
+		TextColor3 = CONFIG.Text,
 	Parent = header,
 })
 addCorner(close, 8)
@@ -178,10 +172,10 @@ make("UIListLayout", {
 	Parent = tabBar,
 })
 
--- Thin divider line
+-- Divider ABOVE tabs (correct position)
 make("Frame", {
 	Size = UDim2.new(1, -24, 0, 1),
-	Position = UDim2.new(0, 12, 0, 84),
+	Position = UDim2.new(0, 12, 0, 44),
 	BackgroundColor3 = CONFIG.Stroke,
 	BackgroundTransparency = 0.6,
 	BorderSizePixel = 0,
@@ -221,7 +215,8 @@ local function makePage(name)
 		Parent = page,
 	})
 
-	local CARD_WIDTH = 260
+	-- PERFECT WIDTH FOR 16PX SYMMETRY
+	local CARD_WIDTH = 276
 	local CARD_HEIGHT = 76
 	local GAP = 16
 
@@ -271,7 +266,7 @@ end
 pages["Main"].Visible = true
 
 ------------------------------------------------------------
--- Main Tab
+-- DEMO TOGGLES
 ------------------------------------------------------------
 
 local SERVICES = {
@@ -280,45 +275,9 @@ local SERVICES = {
 	Overlay = screen,
 }
 
-Toggles.AddToggleCard(
-	pages["Main"],
-	"aimbot",
-	"Aimbot",
-	"Placeholder toggle card.",
-	1,
-	false,
-	CONFIG,
-	SERVICES,
-	nil
-)
-
-Toggles.AddToggleCard(
-	pages["Main"],
-	"esp",
-	"ESP",
-	"Second placeholder.",
-	2,
-	false,
-	CONFIG,
-	SERVICES,
-	nil
-)
-
-------------------------------------------------------------
--- Settings Tab
-------------------------------------------------------------
-
-Toggles.AddToggleCard(
-	pages["Settings"],
-	"settings_rgb_accent",
-	"RGB Accent",
-	"Animate accent color.",
-	1,
-	false,
-	CONFIG,
-	SERVICES,
-	nil
-)
+Toggles.AddToggleCard(pages["Main"], "aimbot", "Aimbot", "Placeholder toggle card.", 1, false, CONFIG, SERVICES, nil)
+Toggles.AddToggleCard(pages["Main"], "esp", "ESP", "Second placeholder.", 2, false, CONFIG, SERVICES, nil)
+Toggles.AddToggleCard(pages["Settings"], "settings_rgb_accent", "RGB Accent", "Animate accent color.", 1, false, CONFIG, SERVICES, nil)
 
 ------------------------------------------------------------
 -- OPEN/CLOSE
@@ -333,7 +292,7 @@ close.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------------------
--- RGB + TAB ACTIVE VISUALS
+-- RGB + ACTIVE TAB
 ------------------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
