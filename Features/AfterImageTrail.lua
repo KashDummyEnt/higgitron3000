@@ -9,14 +9,12 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 
 ------------------------------------------------------------
--- GLOBAL ACCESS (for toggle API)
+-- GLOBAL ACCESS
 ------------------------------------------------------------
 
 local function getGlobal(): any
 	local gg = (typeof(getgenv) == "function") and getgenv() or nil
-	if gg then
-		return gg
-	end
+	if gg then return gg end
 	return _G
 end
 
@@ -58,7 +56,7 @@ local function getNextGradientColor(): Color3
 end
 
 ------------------------------------------------------------
--- CREATE AFTERIMAGE (UNCHANGED LOGIC)
+-- CREATE AFTERIMAGE
 ------------------------------------------------------------
 
 local function createAfterImage(char: Model, moveDirection: Vector3)
@@ -137,4 +135,103 @@ local function createAfterImage(char: Model, moveDirection: Vector3)
 				end
 
 				if obj:IsA("BasePart") then
-					obj.Anch
+					obj.Anchored = true
+					obj.CanCollide = false
+					obj.CastShadow = false
+					obj.CFrame = obj.CFrame + offset
+					obj.Transparency = START_TRANSPARENCY
+					obj.Material = Enum.Material.SmoothPlastic
+					obj.Color = ghostColor
+
+					if obj:IsA("MeshPart") then
+						obj.TextureID = ""
+					end
+
+					local mesh = obj:FindFirstChildOfClass("SpecialMesh")
+					if mesh then
+						mesh.TextureId = ""
+					end
+
+					TweenService:Create(
+						obj,
+						TweenInfo.new(FADE_TIME),
+						{ Transparency = 1 }
+					):Play()
+				end
+			end
+		end
+	end
+
+	task.delay(FADE_TIME, function()
+		if ghostModel and ghostModel.Parent then
+			ghostModel:Destroy()
+		end
+	end)
+end
+
+------------------------------------------------------------
+-- START / STOP LOOP
+------------------------------------------------------------
+
+local function start()
+	if connection then return end
+
+	connection = RunService.RenderStepped:Connect(function(dt)
+		if not enabled then return end
+
+		local char = player.Character
+		if not char then return end
+
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
+
+		local moveDir = humanoid.MoveDirection
+
+		if moveDir.Magnitude > 0 then
+			accumulator += dt
+
+			if accumulator >= TRAIL_INTERVAL then
+				accumulator = 0
+				createAfterImage(char, moveDir)
+			end
+		end
+	end)
+end
+
+local function stop()
+	if connection then
+		connection:Disconnect()
+		connection = nil
+	end
+end
+
+------------------------------------------------------------
+-- TOGGLE API
+------------------------------------------------------------
+
+local function waitForTogglesApi(timeoutSeconds: number): any?
+	local startTime = os.clock()
+	while os.clock() - startTime < timeoutSeconds do
+		local api = G.__HIGGI_TOGGLES_API
+		if type(api) == "table" and type(api.Subscribe) == "function" then
+			return api
+		end
+		task.wait(0.05)
+	end
+	return nil
+end
+
+local Toggles = waitForTogglesApi(6)
+if not Toggles then
+	warn("[AfterImageTrail] Toggle API missing")
+	return
+end
+
+Toggles.Subscribe("misc_afterimage", function(state: boolean)
+	enabled = state
+	if state then
+		start()
+	else
+		stop()
+	end
+end)
