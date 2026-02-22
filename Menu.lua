@@ -21,7 +21,7 @@ local CONFIG = {
 	PopupSize = Vector2.new(600, 400),
 
 	BaseAccent = Color3.fromRGB(255, 0, 0),
-	Accent = Color3.fromRGB(255, 0, 255),
+	Accent = Color3.fromRGB(255, 0, 0),
 
 	Bg = Color3.fromRGB(14, 14, 16),
 	Bg2 = Color3.fromRGB(20, 20, 24),
