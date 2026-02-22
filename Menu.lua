@@ -304,6 +304,10 @@ Toggles.AddToggleCard(
 	nil
 )
 
+------------------------------------------------------------
+-- Settings Tab
+------------------------------------------------------------
+
 Toggles.AddToggleCard(
 	pages["Settings"],
 	"settings_rgb_accent",
