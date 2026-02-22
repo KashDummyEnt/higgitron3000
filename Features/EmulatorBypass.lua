@@ -127,7 +127,7 @@ local function removeBlock()
 end
 
 ------------------------------------------------------------
--- FRAME ENFORCEMENT
+-- FRAME ENFORCEMENT (Safety Net)
 ------------------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
@@ -139,7 +139,6 @@ RunService.RenderStepped:Connect(function()
 		return
 	end
 
-	-- Enabled state
 	if isTouchEnvironment() then
 		if not blocked then
 			applyBlock()
@@ -158,7 +157,22 @@ end)
 
 Toggles.Subscribe("settings_emulator_bypass", function(state: boolean)
 	enabled = state
+
+	if not state then
+		removeBlock()
+	else
+		if isTouchEnvironment() then
+			applyBlock()
+		end
+	end
 end)
 
--- Sync initial state
+------------------------------------------------------------
+-- INITIAL SYNC (CRITICAL FIX)
+------------------------------------------------------------
+
 enabled = Toggles.GetState("settings_emulator_bypass", false)
+
+if enabled and isTouchEnvironment() then
+	applyBlock()
+end
