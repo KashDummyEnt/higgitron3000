@@ -95,6 +95,7 @@ local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron300
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/FastMode.lua"
 local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/EmulatorBypass.lua"
 local PREVIEW_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Preview.lua"
+local DRAG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/DragController.lua"
 
 
 local function loadModule(url)
@@ -106,6 +107,7 @@ local Toggles = loadModule(TOGGLES_URL)
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
 G.__HIGGI_TOGGLES_API = Toggles
 
+local DragController = loadModule(DRAG_URL)
 
 ------------------------------------------------------------
 -- LAZY FEATURE LOADER
@@ -831,53 +833,12 @@ Toggles.Subscribe("settings_rgb_accent", function(state)
 		stopRGB()
 	end
 end)
+
 ------------------------------------------------------------
--- DRAG GROUP
+-- ATTACH DRAG CONTROLLER
 ------------------------------------------------------------
 
-local dragging = false
-local dragStart = Vector2.zero
-local startPos = UDim2.new()
-
-local function beginDrag(input)
-	dragging = true
-	dragStart = input.Position
-	startPos = popupGroup.Position
-end
-
-local function updateDrag(input)
-	if not dragging then return end
-	local delta = input.Position - dragStart
-
-	popupGroup.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
-end
-
-header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-		beginDrag(input)
-	end
-end)
-
-header.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-	or input.UserInputType == Enum.UserInputType.Touch then
-		updateDrag(input)
-	end
-end)
-
+DragController.Attach(header, popupGroup, UserInputService)
 
 ------------------------------------------------------------
 -- OPEN / CLOSE
