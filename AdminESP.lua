@@ -726,7 +726,7 @@ local snapOriginPart: BasePart? = nil
 local FP_FORWARD_PUSH = 0.75
 local FP_MIN_CAM_DIST = 1.35
 
-local SNAP_THICKNESS = 0.10
+local SNAP_THICKNESS = 0.05
 local SNAP_TRANSPARENCY = 0.15
 
 local snapRemoveConn: RBXScriptConnection? = nil
