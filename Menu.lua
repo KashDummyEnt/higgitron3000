@@ -94,6 +94,7 @@ local NOFOG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/
 local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/AdminESP.lua"
 local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Flight.lua"
 local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/PlayerSpeed.lua"
+local LOCAL_GRAVITY_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/LocalGravity.lua"
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Rage.lua"
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
@@ -484,73 +485,19 @@ pages["Main"].Page.Visible = true
 -- MAIN TAB
 ------------------------------------------------------------
 
--- LEFT COLUMN (core aimbot logic)
-Toggles.AddToggleCard(
-	pages["Main"].Left,
-	"combat_rage",
-	"Rage Aimbot",
-	"Auto-aim at nearest enemy inside FOV.",
-	1,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("combat_rage", RAGE_URL)
-		end
-	end
-)
+-- LEFT COLUMN
+Toggles.AddToggleCard(pages["Main"].Left, "combat_rage", "Rage Aimbot", "Auto-aim at nearest enemy inside FOV.", 1, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("combat_rage", RAGE_URL) end
+end)
 
-Toggles.AddSliderCard(
-	pages["Main"].Left,
-	"combat_rage_fov",
-	"Aim FOV",
-	nil,
-	2,
-	20,
-	400,
-	120,
-	5,
-	CONFIG,
-	SERVICES
-)
+Toggles.AddSliderCard(pages["Main"].Left, "combat_rage_fov", "Aim FOV", nil, 2, 20, 400, 120, 5, CONFIG, SERVICES)
 
-Toggles.AddSliderCard(
-	pages["Main"].Left,
-	"combat_rage_smooth",
-	"Smooth",
-	nil,
-	3,
-	0,
-	1,
-	0.18,
-	0.01,
-	CONFIG,
-	SERVICES
-)
+Toggles.AddSliderCard(pages["Main"].Left, "combat_rage_smooth", "Smooth", nil, 3, 0, 1, 0.18, 0.01, CONFIG, SERVICES)
 
--- RIGHT COLUMN (modifiers)
-Toggles.AddToggleCard(
-	pages["Main"].Right,
-	"combat_rage_autowall",
-	"Auto Wall",
-	"Allow targeting through walls.",
-	4,
-	false,
-	CONFIG,
-	SERVICES
-)
+-- RIGHT COLUMN
+Toggles.AddToggleCard(pages["Main"].Right, "combat_rage_autowall", "Auto Wall", "Allow targeting through walls.", 4, false, CONFIG, SERVICES)
 
-Toggles.AddToggleCard(
-	pages["Main"].Right,
-	"combat_rage_teamcheck",
-	"Team Check",
-	"Ignore players on your team.",
-	5,
-	true,
-	CONFIG,
-	SERVICES
-)
+Toggles.AddToggleCard(pages["Main"].Right, "combat_rage_teamcheck", "Team Check", "Ignore players on your team.", 5, true, CONFIG, SERVICES)
 
 
 ------------------------------------------------------------
@@ -570,54 +517,17 @@ Toggles.AddToggleCard(pages["Visuals"].Left, "visuals_box3d", "Boxes", "3D wiref
 	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
 end)
 
--- RIGHT
-Toggles.AddToggleCard(
-	pages["Visuals"].Right,
-	"visuals_player",
-	"Chams",
-	"Highlight player models.",
-	4,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("adminesp", ADMINESP_URL)
-		end
-	end
-)
+Toggles.AddToggleCard(pages["Visuals"].Right, "visuals_player", "Chams", "Highlight player models.", 4, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
 
-Toggles.AddToggleCard(
-	pages["Visuals"].Right,
-	"visuals_snaplines",
-	"Snaplines",
-	"Draw rods from your feet to enemies.",
-	5,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("adminesp", ADMINESP_URL)
-		end
-	end
-)
+Toggles.AddToggleCard(pages["Visuals"].Right, "visuals_snaplines", "Snaplines", "Draw rods from your feet to enemies.", 5, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
 
-Toggles.AddToggleCard(
-	pages["Visuals"].Right,
-	"visuals_team",
-	"Show Teammates",
-	"Render ESP on teammates.",
-	6,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("adminesp", ADMINESP_URL)
-		end
-	end
-)
+Toggles.AddToggleCard(pages["Visuals"].Right, "visuals_team", "Show Teammates", "Render ESP on teammates.", 6, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
 
 
 ------------------------------------------------------------
@@ -626,18 +536,7 @@ Toggles.AddToggleCard(
 
 -- LEFT
 
-Toggles.AddToggleDropDownCard(
-	pages["World"].Left,
-	"world_skybox",	
-	"world_skybox_dropdown",
-	"Skybox",
-	"Enable client skybox and select preset.",
-	1, 
-	-- Defaults
-	false,
-	"Eyes", 
-
-	-- Options provider
+Toggles.AddToggleDropDownCard(pages["World"].Left, "world_skybox", "world_skybox_dropdown", "Skybox", "Enable client skybox and select preset.", 1, false, "Eyes",
 	function()
 		return {
 			"Space Rocks",
@@ -671,25 +570,10 @@ Toggles.AddToggleDropDownCard(
 			"Eyes",
 		}
 	end,
-
-	CONFIG,
-	SERVICES,
-
-	-- Toggle changed
-	function(state)
-		if state then
-			ensureFeatureLoaded("world_skybox", SKY_URL)
-		end
-	end,
-
-	-- Dropdown changed
-	function(selected)
-		-- ClientSky.lua handles this automatically
-	end
+	CONFIG, SERVICES,
+	function(state) if state then ensureFeatureLoaded("world_skybox", SKY_URL) end end,
+	function(selected) end
 )
-
-
-
 
 Toggles.AddToggleCard(pages["World"].Left, "world_fullbright", "Fullbright", "Force max brightness.", 2, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("world_fullbright", FULLBRIGHT_URL) end
@@ -702,46 +586,16 @@ end)
 
 -- RIGHT
 
-Toggles.AddToggleDropDownCard(
-	pages["World"].Right,
-	"world_weather",
-	"world_weather_type",
-	"Weather FX",
-	"Enable client weather and select type.",
-	1,
-	false,
-	"Snow",
-	function()
-		return {
-			"Snow",
-		}
-	end,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("world_weather", WEATHER_URL)
-		end
-	end,
-	function(selected)
-	end
+Toggles.AddToggleDropDownCard(pages["World"].Right, "world_weather", "world_weather_type", "Weather FX", "Enable client weather and select type.", 1, false, "Snow",
+	function() return { "Snow" } end,
+	CONFIG, SERVICES,
+	function(state) if state then ensureFeatureLoaded("world_weather", WEATHER_URL) end end,
+	function(selected) end
 )
 
-Toggles.AddToggleCard(
-	pages["World"].Right,
-	"world_fastmode",
-	"Fast Mode",
-	"Disable textures & shadows for FPS boost.",
-	2,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("world_fastmode", FASTMODE_URL)
-		end
-	end
-)
+Toggles.AddToggleCard(pages["World"].Right, "world_fastmode", "Fast Mode", "Disable textures & shadows for FPS boost.", 2, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("world_fastmode", FASTMODE_URL) end
+end)
 
 ------------------------------------------------------------
 -- MISC TAB
@@ -755,36 +609,19 @@ Toggles.AddToggleCard(pages["Misc"].Right, "misc_speed", "Speed Boost", "Increas
 	if state then ensureFeatureLoaded("misc_speed", SPEED_URL) end
 end)
 
+Toggles.AddToggleCard(pages["Misc"].Right, "misc_local_gravity", "Low Gravity", "Reduce client gravity.", 3, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("misc_local_gravity", LOCAL_GRAVITY_URL) end
+end)
+
 ------------------------------------------------------------
 -- SETTINGS TAB
 ------------------------------------------------------------
 
-Toggles.AddToggleCard(
-	pages["Settings"].Left,
-	"settings_rgb_accent",
-	"RGB Accent",
-	"Cycle accent color dynamically.",
-	1,
-	false,
-	CONFIG,
-	SERVICES
-)
+Toggles.AddToggleCard(pages["Settings"].Left, "settings_rgb_accent", "RGB Accent", "Cycle accent color dynamically.", 1, false, CONFIG, SERVICES)
 
-Toggles.AddToggleCard(
-	pages["Settings"].Right,
-	"settings_emulator_bypass",
-	"Emulator Bypass",
-	"Bypasses Emulator Detections.",
-	2,
-	true,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("settings_emulator_bypass", EMULATOR_BYPASS_URL)
-		end
-	end
-)
+Toggles.AddToggleCard(pages["Settings"].Right, "settings_emulator_bypass", "Emulator Bypass", "Bypasses Emulator Detections.", 2, true, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("settings_emulator_bypass", EMULATOR_BYPASS_URL) end
+end)
 ------------------------------------------------------------
 -- RGB ACCENT SYSTEM (PROPER SUBSCRIBE VERSION)
 ------------------------------------------------------------
