@@ -264,7 +264,7 @@ local SERVICES = {
 Toggles.AddToggleCard(
 	pages["Main"],
 	"example_toggle_1",
-	"Example Toggle",
+	"Aimbot",
 	"Placeholder toggle card.",
 	1,
 	false,
@@ -276,7 +276,7 @@ Toggles.AddToggleCard(
 Toggles.AddToggleCard(
 	pages["Main"],
 	"example_toggle_2",
-	"Second Toggle",
+	"Esp",
 	"Second placeholder.",
 	2,
 	false,
