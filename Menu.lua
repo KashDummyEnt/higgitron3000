@@ -98,7 +98,7 @@ local LOCAL_GRAVITY_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgit
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Rage.lua"
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
-
+local AFTERIMAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/AfterImageTrail.lua"
 
 
 
@@ -611,6 +611,10 @@ end)
 
 Toggles.AddToggleCard(pages["Misc"].Right, "misc_local_gravity", "Low Gravity", "Reduce client gravity.", 3, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("misc_local_gravity", LOCAL_GRAVITY_URL) end
+end)
+
+Toggles.AddToggleCard(pages["Misc"].Left, "misc_afterimage", "After Image Trail", "Sandevistan-style time echo trail.", 4, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("misc_afterimage", AFTERIMAGE_URL) end
 end)
 
 ------------------------------------------------------------
