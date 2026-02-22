@@ -1,5 +1,5 @@
 --!strict
--- Avatar Preview GUI (Proper Framing + Weld-Safe + Smooth Rotate)
+-- Avatar Preview GUI (FINAL CLEAN VERSION)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -46,7 +46,7 @@ cam.Parent = viewport
 viewport.CurrentCamera = cam
 
 --------------------------------------------------
--- BUILD AVATAR SAFELY
+-- BUILD AVATAR (WELD SAFE)
 --------------------------------------------------
 
 local preview: Model? = nil
@@ -65,7 +65,7 @@ local function buildAvatar()
 	rig.Name = "Preview"
 	rig.Parent = world
 
-	-- Allow welds + accessories to fully attach
+	-- allow accessory welds to initialize
 	RunService.Heartbeat:Wait()
 
 	for _, v in ipairs(rig:GetDescendants()) do
@@ -88,7 +88,7 @@ end
 buildAvatar()
 
 --------------------------------------------------
--- CAMERA FIT (CORRECT CENTERING)
+-- CAMERA + ROTATION
 --------------------------------------------------
 
 local function update()
@@ -96,10 +96,11 @@ local function update()
 		return
 	end
 
-		preview:SetPrimaryPartCFrame(
-			CFrame.new(0, 0, 0) *
-			CFrame.Angles(0, math.rad(180 + rotationY), 0)
-		)
+	-- 180° base rotation so avatar faces camera
+	preview:SetPrimaryPartCFrame(
+		CFrame.new(0, 0, 0) *
+		CFrame.Angles(0, math.rad(180 + rotationY), 0)
+	)
 
 	local cf, size = preview:GetBoundingBox()
 	local center = cf.Position
@@ -117,7 +118,7 @@ end
 RunService.RenderStepped:Connect(update)
 
 --------------------------------------------------
--- DRAG ROTATION
+-- DRAG ROTATION (CORRECT DIRECTION)
 --------------------------------------------------
 
 local dragging = false
@@ -141,10 +142,14 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
 	if not dragging then return end
+
 	if input.UserInputType == Enum.UserInputType.MouseMovement
 	or input.UserInputType == Enum.UserInputType.Touch then
+
 		local delta = input.Position.X - lastX
 		lastX = input.Position.X
+
+		-- drag right = spin right
 		rotationY += delta * rotationSpeed
 	end
 end)
