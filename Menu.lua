@@ -20,7 +20,7 @@ local CONFIG = {
 
 	PopupSize = Vector2.new(600, 400),
 
-	BaseAccent = Color3.fromRGB(255, 0, 0),
+	BaseAccent = Color3.fromRGB(255, 0, 255),
 	Accent = Color3.fromRGB(255, 0, 255),
 
 	Bg = Color3.fromRGB(14, 14, 16),
@@ -161,7 +161,7 @@ addStroke(close, 1, CONFIG.Stroke, 0.25)
 
 local tabBar = make("Frame", {
 	Size = UDim2.new(1, -24, 0, 40),
-	Position = UDim2.new(0, 12, 0, 52),
+	Position = UDim2.new(0, 12, 0, 54),
 	BackgroundTransparency = 1,
 	Parent = popup,
 })
