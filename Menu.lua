@@ -194,8 +194,9 @@ addStroke(toggleBtn, 1, CONFIG.Stroke, 0.25)
 -- GROUP CONTAINER (CENTERED)
 ------------------------------------------------------------
 
-local PREVIEW_WIDTH = 220
+local PREVIEW_WIDTH = 210
 local PREVIEW_GAP = 16
+local PREVIEW_HEIGHT = CONFIG.PopupSize.Y - 32 -- slightly shorter
 
 local GROUP_WIDTH = CONFIG.PopupSize.X + PREVIEW_GAP + PREVIEW_WIDTH
 local GROUP_HEIGHT = CONFIG.PopupSize.Y
@@ -229,8 +230,11 @@ addStroke(popup, 1, CONFIG.Stroke, 0.2)
 ------------------------------------------------------------
 
 local previewPanel = make("Frame", {
-	Size = UDim2.fromOffset(PREVIEW_WIDTH, CONFIG.PopupSize.Y),
-	Position = UDim2.fromOffset(CONFIG.PopupSize.X + PREVIEW_GAP, 0),
+	Size = UDim2.fromOffset(PREVIEW_WIDTH, PREVIEW_HEIGHT),
+	Position = UDim2.fromOffset(
+		CONFIG.PopupSize.X + PREVIEW_GAP,
+		(GROUP_HEIGHT - PREVIEW_HEIGHT) / 2
+	),
 	BackgroundColor3 = CONFIG.Bg,
 	Parent = popupGroup,
 })
@@ -242,8 +246,8 @@ addStroke(previewPanel, 1, CONFIG.Stroke, 0.2)
 ------------------------------------------------------------
 
 local viewport = make("ViewportFrame", {
-	Size = UDim2.new(1, -16, 1, -16),
-	Position = UDim2.fromOffset(8, 8),
+	Size = UDim2.new(1, -12, 1, -12),
+	Position = UDim2.fromOffset(6, 6),
 	BackgroundTransparency = 1,
 	Ambient = Color3.fromRGB(210,210,210),
 	LightColor = Color3.fromRGB(255,255,255),
@@ -856,7 +860,8 @@ local previewBox: Part? = nil
 local previewNameLabel = Instance.new("TextLabel")
 previewNameLabel.Name = "PreviewName"
 previewNameLabel.Size = UDim2.new(1, -40, 0, 22)
-previewNameLabel.Position = UDim2.new(0, 20, 0, 12)
+previewNameLabel.Position = UDim2.new(0, 16, 0, 8)
+previewNameLabel.Size = UDim2.new(1, -32, 0, 20)
 previewNameLabel.BackgroundTransparency = 1
 previewNameLabel.Font = Enum.Font.GothamSemibold
 previewNameLabel.TextScaled = true
@@ -871,7 +876,8 @@ previewNameLabel.Parent = previewPanel
 
 local previewHealthContainer = Instance.new("Frame")
 previewHealthContainer.Size = UDim2.new(1, -40, 0, 8)
-previewHealthContainer.Position = UDim2.new(0, 20, 1, -30)
+previewHealthContainer.Position = UDim2.new(0, 16, 1, -24)
+previewHealthContainer.Size = UDim2.new(1, -32, 0, 8)
 previewHealthContainer.BackgroundTransparency = 1
 previewHealthContainer.Visible = false
 previewHealthContainer.Parent = previewPanel
