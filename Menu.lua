@@ -82,7 +82,11 @@ end
 -- LOAD TOGGLE MODULE
 ------------------------------------------------------------
 
-local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
+local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menu/ToggleSwitches.lua"
+local DRAG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menu/DragController.lua"
+local PREVIEW_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menu/Preview.lua"
+local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/EmulatorBypass.lua"
+
 
 local SKY_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/ClientSky.lua"
 local FULLBRIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Fullbright.lua"
@@ -93,9 +97,8 @@ local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Rage.lua"
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
-local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/EmulatorBypass.lua"
-local PREVIEW_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menu/Preview.lua"
-local DRAG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menuy/DragController.lua"
+
+
 
 
 local function loadModule(url)
