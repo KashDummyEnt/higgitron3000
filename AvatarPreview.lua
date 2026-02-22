@@ -96,10 +96,10 @@ local function update()
 		return
 	end
 
-	preview:SetPrimaryPartCFrame(
-		CFrame.new(0, 0, 0) *
-		CFrame.Angles(0, math.rad(rotationY), 0)
-	)
+		preview:SetPrimaryPartCFrame(
+			CFrame.new(0, 0, 0) *
+			CFrame.Angles(0, math.rad(180 + rotationY), 0)
+		)
 
 	local cf, size = preview:GetBoundingBox()
 	local center = cf.Position
