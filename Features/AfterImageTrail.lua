@@ -227,6 +227,10 @@ if not Toggles then
 	return
 end
 
+------------------------------------------------------------
+-- SUBSCRIBE + INITIAL SYNC FIX
+------------------------------------------------------------
+
 Toggles.Subscribe("misc_afterimage", function(state: boolean)
 	enabled = state
 	if state then
@@ -235,3 +239,10 @@ Toggles.Subscribe("misc_afterimage", function(state: boolean)
 		stop()
 	end
 end)
+
+-- 🔥 THIS FIXES THE DOUBLE ENABLE ISSUE
+local initial = Toggles.GetState("misc_afterimage", false)
+enabled = initial
+if initial then
+	start()
+end
