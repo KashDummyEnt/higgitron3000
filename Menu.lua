@@ -1,284 +1,304 @@
 --!strict
 -- CleanMenu.lua
--- New minimalist toggle GUI shell (no features included)
-
--- Load with:
--- loadstring(game:HttpGet("YOUR_GITHUB_RAW_LINK"))()
+-- HIGGI v2 Menu Shell (No features yet)
+-- Reuses existing ToggleSwitches.lua system
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-----------------------------------------------------------------
--- CONFIG
-----------------------------------------------------------------
+------------------------------------------------------------
+-- CONFIG (same color system)
+------------------------------------------------------------
+
 local CONFIG = {
-	GuiName = "CleanMenuGui",
+	GuiName = "HiggiCleanGui",
+	ToggleButtonName = "MenuToggleButton",
 
-	Width = 560,
-	Height = 380,
+	PopupSize = Vector2.new(560, 380),
 
-	Accent = Color3.fromRGB(170, 0, 255),
-	BgMain = Color3.fromRGB(18,18,22),
-	BgSidebar = Color3.fromRGB(22,22,28),
-	BgCard = Color3.fromRGB(28,28,35),
-
-	Text = Color3.fromRGB(240,240,245),
-	SubText = Color3.fromRGB(170,170,180),
-	Stroke = Color3.fromRGB(60,60,70),
+	Accent = Color3.fromRGB(255, 0, 255),
+	Bg = Color3.fromRGB(14, 14, 16),
+	Bg2 = Color3.fromRGB(20, 20, 24),
+	Bg3 = Color3.fromRGB(26, 26, 32),
+	Text = Color3.fromRGB(240, 240, 244),
+	SubText = Color3.fromRGB(170, 170, 180),
+	Stroke = Color3.fromRGB(55, 55, 65),
 }
 
-----------------------------------------------------------------
--- LOAD TOGGLE MODULE (UNCHANGED)
-----------------------------------------------------------------
-local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
+------------------------------------------------------------
+-- UTIL
+------------------------------------------------------------
 
-local function loadModule(url: string)
-	local ok, code = pcall(function()
-		return game:HttpGet(url)
-	end)
-	if not ok then error(code) end
-
-	local fn = loadstring(code)
-	if not fn then error("compile fail") end
-
-	local result = fn()
-	if type(result) ~= "table" then
-		error("Toggle module invalid")
-	end
-
-	return result
-end
-
-local Toggles = loadModule(TOGGLES_URL)
-
--- expose globally
-local G = (typeof(getgenv) == "function") and getgenv() or _G
-G.__HIGGI_TOGGLES_API = Toggles
-
-----------------------------------------------------------------
--- UI HELPERS
-----------------------------------------------------------------
-local function make(class, props)
-	local inst = Instance.new(class)
-	if props then
-		for k,v in pairs(props) do
-			inst[k] = v
+local function make(t, p)
+	local i = Instance.new(t)
+	if p then
+		for k,v in pairs(p) do
+			i[k] = v
 		end
 	end
-	return inst
+	return i
 end
 
 local function addCorner(parent, r)
 	make("UICorner", {
-		CornerRadius = UDim.new(0,r),
+		CornerRadius = UDim.new(0, r),
 		Parent = parent,
 	})
 end
 
-local function addStroke(parent)
+local function addStroke(parent, t, c, tr)
 	make("UIStroke", {
-		Color = CONFIG.Stroke,
-		Thickness = 1,
-		Transparency = 0.3,
+		Thickness = t,
+		Color = c,
+		Transparency = tr or 0,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = parent,
 	})
 end
 
-----------------------------------------------------------------
--- DESTROY OLD
-----------------------------------------------------------------
-local existing = playerGui:FindFirstChild(CONFIG.GuiName)
-if existing then
-	existing:Destroy()
+------------------------------------------------------------
+-- TOGGLE MODULE LOAD (reuse existing)
+------------------------------------------------------------
+
+local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
+
+local function loadModule(url)
+	local ok, code = pcall(function()
+		return game:HttpGet(url)
+	end)
+	if not ok then
+		error(code)
+	end
+
+	local chunk = loadstring(code)
+	return chunk()
 end
 
-----------------------------------------------------------------
--- SCREEN GUI
-----------------------------------------------------------------
-local screenGui = make("ScreenGui", {
+local Toggles = loadModule(TOGGLES_URL)
+
+local G = (typeof(getgenv) == "function" and getgenv()) or _G
+G.__HIGGI_TOGGLES_API = Toggles
+
+------------------------------------------------------------
+-- GUI BUILD
+------------------------------------------------------------
+
+local old = playerGui:FindFirstChild(CONFIG.GuiName)
+if old then
+	old:Destroy()
+end
+
+local screen = make("ScreenGui", {
 	Name = CONFIG.GuiName,
 	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
 	Parent = playerGui,
 })
 
-----------------------------------------------------------------
--- MAIN WINDOW
-----------------------------------------------------------------
-local window = make("Frame", {
-	BackgroundColor3 = CONFIG.BgMain,
-	Size = UDim2.fromOffset(CONFIG.Width, CONFIG.Height),
-	Position = UDim2.fromScale(0.5,0.5),
-	AnchorPoint = Vector2.new(0.5,0.5),
-	Parent = screenGui,
-})
-addCorner(window,16)
-addStroke(window)
+------------------------------------------------------------
+-- Floating Toggle Button
+------------------------------------------------------------
 
-----------------------------------------------------------------
+local toggleBtn = make("ImageButton", {
+	Name = CONFIG.ToggleButtonName,
+	Size = UDim2.fromOffset(44, 44),
+	Position = UDim2.fromOffset(16, 80),
+	BackgroundColor3 = CONFIG.Bg2,
+	Parent = screen,
+})
+addCorner(toggleBtn, 22)
+addStroke(toggleBtn, 1, CONFIG.Stroke, 0.25)
+
+------------------------------------------------------------
+-- Popup
+------------------------------------------------------------
+
+local popup = make("Frame", {
+	Size = UDim2.fromOffset(CONFIG.PopupSize.X, CONFIG.PopupSize.Y),
+	Position = UDim2.fromScale(0.5, 0.5),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundColor3 = CONFIG.Bg,
+	Visible = false,
+	Parent = screen,
+})
+addCorner(popup, 16)
+addStroke(popup, 1, CONFIG.Stroke, 0.2)
+
+------------------------------------------------------------
 -- HEADER
-----------------------------------------------------------------
+------------------------------------------------------------
+
 local header = make("Frame", {
+	Size = UDim2.new(1, 0, 0, 44),
 	BackgroundTransparency = 1,
-	Size = UDim2.new(1,0,0,50),
-	Parent = window,
+	Parent = popup,
 })
 
 local title = make("TextLabel", {
-	BackgroundTransparency = 1,
-	Text = "CLEAN MENU",
-	TextColor3 = CONFIG.Accent,
+	Text = "HIGGI v2",
+	Font = Enum.Font.GothamBlack,
 	TextSize = 22,
-	Font = Enum.Font.GothamBold,
-	Position = UDim2.new(0,20,0,0),
-	Size = UDim2.new(1,-20,1,0),
+	TextColor3 = CONFIG.Accent,
 	TextXAlignment = Enum.TextXAlignment.Left,
+	Size = UDim2.new(1, -60, 1, 0),
+	Position = UDim2.new(0, 16, 0, 0),
+	BackgroundTransparency = 1,
 	Parent = header,
 })
 
-----------------------------------------------------------------
--- BODY
-----------------------------------------------------------------
-local body = make("Frame", {
+local close = make("TextButton", {
+	Text = "X",
+	Font = Enum.Font.GothamBold,
+	TextSize = 14,
+	Size = UDim2.fromOffset(32, 28),
+	Position = UDim2.new(1, -42, 0, 8),
+	BackgroundColor3 = CONFIG.Bg2,
+	TextColor3 = CONFIG.Text,
+	Parent = header,
+})
+addCorner(close, 8)
+addStroke(close, 1, CONFIG.Stroke, 0.25)
+
+------------------------------------------------------------
+-- TAB BAR
+------------------------------------------------------------
+
+local tabBar = make("Frame", {
+	Size = UDim2.new(1, -24, 0, 40),
+	Position = UDim2.new(0, 12, 0, 44),
 	BackgroundTransparency = 1,
-	Position = UDim2.new(0,0,0,50),
-	Size = UDim2.new(1,0,1,-50),
-	Parent = window,
+	Parent = popup,
 })
 
-----------------------------------------------------------------
--- SIDEBAR
-----------------------------------------------------------------
-local sidebar = make("Frame", {
-	BackgroundColor3 = CONFIG.BgSidebar,
-	Size = UDim2.new(0,150,1,0),
-	Parent = body,
-})
-addCorner(sidebar,14)
-addStroke(sidebar)
-
-make("UIListLayout", {
-	Padding = UDim.new(0,8),
-	Parent = sidebar,
+local tabLayout = make("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	Padding = UDim.new(0, 8),
+	Parent = tabBar,
 })
 
-make("UIPadding", {
-	PaddingTop = UDim.new(0,12),
-	PaddingLeft = UDim.new(0,12),
-	PaddingRight = UDim.new(0,12),
-	Parent = sidebar,
-})
+local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
 
-----------------------------------------------------------------
--- PAGE CONTAINER
-----------------------------------------------------------------
-local pages = make("Frame", {
+local pages = {}
+
+------------------------------------------------------------
+-- CONTENT AREA (2 COLUMN GRID)
+------------------------------------------------------------
+
+local content = make("Frame", {
+	Size = UDim2.new(1, -24, 1, -100),
+	Position = UDim2.new(0, 12, 0, 88),
 	BackgroundTransparency = 1,
-	Position = UDim2.new(0,160,0,10),
-	Size = UDim2.new(1,-170,1,-20),
-	Parent = body,
+	Parent = popup,
 })
 
-----------------------------------------------------------------
--- TAB SYSTEM
-----------------------------------------------------------------
-local currentTab = nil
-local tabButtons = {}
-
-local function createPage(name: string)
-	local page = make("Frame", {
-		Name = name,
+local function makePage(name)
+	local page = make("ScrollingFrame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		CanvasSize = UDim2.new(0,0,0,0),
+		ScrollBarThickness = 4,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1,0,1,0),
 		Visible = false,
-		Parent = pages,
+		Parent = content,
 	})
+
+	local grid = make("UIGridLayout", {
+		CellSize = UDim2.new(0.5, -6, 0, 70),
+		CellPadding = UDim2.new(0, 12, 0, 12),
+		Parent = page,
+	})
+
+	grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		page.CanvasSize = UDim2.new(0,0,0,grid.AbsoluteContentSize.Y + 10)
+	end)
+
 	return page
 end
 
-local function switchTab(name: string)
-	for tabName, page in pairs(pages:GetChildren()) do
-		if page:IsA("Frame") then
-			page.Visible = (page.Name == name)
-		end
-	end
+for _,name in ipairs(tabs) do
+	pages[name] = makePage(name)
 
-	for nameBtn, btn in pairs(tabButtons) do
-		btn.BackgroundColor3 = (nameBtn == name)
-			and CONFIG.BgCard
-			or CONFIG.BgSidebar
-	end
-
-	currentTab = name
-end
-
-local function createTab(name: string)
 	local btn = make("TextButton", {
 		Text = name,
-		AutoButtonColor = false,
-		TextColor3 = CONFIG.Text,
-		BackgroundColor3 = CONFIG.BgSidebar,
-		Size = UDim2.new(1,0,0,40),
 		Font = Enum.Font.GothamSemibold,
 		TextSize = 14,
-		Parent = sidebar,
+		Size = UDim2.fromOffset(100, 34),
+		BackgroundColor3 = CONFIG.Bg2,
+		TextColor3 = CONFIG.Text,
+		Parent = tabBar,
 	})
-	addCorner(btn,10)
+	addCorner(btn, 8)
+	addStroke(btn, 1, CONFIG.Stroke, 0.3)
 
 	btn.MouseButton1Click:Connect(function()
-		switchTab(name)
+		for _,p in pairs(pages) do
+			p.Visible = false
+		end
+		pages[name].Visible = true
 	end)
-
-	tabButtons[name] = btn
-
-	return createPage(name)
 end
 
-----------------------------------------------------------------
--- CREATE EMPTY TABS
-----------------------------------------------------------------
-local pageMain = createTab("Main")
-local pageVisuals = createTab("Visuals")
-local pageWorld = createTab("World")
-local pageMisc = createTab("Misc")
-local pageSettings = createTab("Settings")
+pages["Main"].Visible = true
 
-switchTab("Main")
+------------------------------------------------------------
+-- SAMPLE PLACEHOLDER TOGGLES (2 COLUMN DEMO)
+------------------------------------------------------------
 
-----------------------------------------------------------------
--- DRAG SYSTEM
-----------------------------------------------------------------
-do
-	local dragging = false
-	local dragStart
-	local startPos
+local SERVICES = {
+	TweenService = TweenService,
+	UserInputService = UserInputService,
+	Overlay = screen,
+}
 
-	header.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = window.Position
-		end
-	end)
+Toggles.AddToggleCard(
+	pages["Main"],
+	"example_toggle_1",
+	"Example Toggle",
+	"Placeholder toggle card.",
+	1,
+	false,
+	CONFIG,
+	SERVICES,
+	nil
+)
 
-	header.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
+Toggles.AddToggleCard(
+	pages["Main"],
+	"example_toggle_2",
+	"Second Toggle",
+	"Second placeholder.",
+	2,
+	false,
+	CONFIG,
+	SERVICES,
+	nil
+)
 
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local delta = input.Position - dragStart
-			window.Position = UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
-end
+------------------------------------------------------------
+-- OPEN / CLOSE LOGIC
+------------------------------------------------------------
+
+toggleBtn.MouseButton1Click:Connect(function()
+	popup.Visible = not popup.Visible
+end)
+
+close.MouseButton1Click:Connect(function()
+	popup.Visible = false
+end)
+
+------------------------------------------------------------
+-- RGB ACCENT SYSTEM
+------------------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+	if Toggles.GetState("settings_rgb_accent", false) then
+		local t = tick() * 0.8
+		CONFIG.Accent = Color3.fromHSV((t % 5)/5, 1, 1)
+	end
+	title.TextColor3 = CONFIG.Accent
+end)
