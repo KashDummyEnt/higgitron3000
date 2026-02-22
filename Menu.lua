@@ -76,6 +76,7 @@ local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/r
 local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/PlayerSpeed.lua"
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Rage.lua"
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Weather.lua"
+local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/FastMode.lua"
 
 local function loadModule(url)
 	local code = game:HttpGet(url)
@@ -85,17 +86,6 @@ end
 local Toggles = loadModule(TOGGLES_URL)
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
 G.__HIGGI_TOGGLES_API = Toggles
-
-
-------------------------------------------------------------
--- SERVICES TABLE (REQUIRED FOR TOGGLE MODULE)
-------------------------------------------------------------
-
-local SERVICES = {
-	TweenService = TweenService,
-	UserInputService = UserInputService,
-	Overlay = screen, -- optional but good for dropdown layering
-}
 
 
 ------------------------------------------------------------
@@ -146,6 +136,16 @@ local screen = make("ScreenGui", {
 	IgnoreGuiInset = true,
 	Parent = playerGui,
 })
+
+------------------------------------------------------------
+-- SERVICES TABLE (REQUIRED FOR TOGGLE MODULE)
+------------------------------------------------------------
+
+local SERVICES = {
+	TweenService = TweenService,
+	UserInputService = UserInputService,
+	Overlay = screen,
+}
 
 ------------------------------------------------------------
 -- FLOATING BUTTON
@@ -239,7 +239,7 @@ local header = make("Frame", {
 })
 
 local title = make("TextLabel", {
-	Text = "HIGGI v2",
+	Text = "EBTware",
 	Font = Enum.Font.GothamBlack,
 	TextSize = 22,
 	TextColor3 = CONFIG.Accent,
@@ -329,22 +329,60 @@ local function makePage()
 	})
 
 	local CARD_WIDTH = 276
-	local CARD_HEIGHT = 76
 	local GAP = 16
 
-	local grid = make("UIGridLayout", {
-		CellSize = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
-		CellPadding = UDim2.fromOffset(GAP, GAP),
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	local columns = make("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
 		Parent = page,
 	})
 
-	grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		page.CanvasSize = UDim2.new(0,0,0,grid.AbsoluteContentSize.Y + 10)
-	end)
+	local leftColumn = make("Frame", {
+		Name = "Left",
+		Size = UDim2.fromOffset(CARD_WIDTH, 0),
+		Position = UDim2.new(0.5, -CARD_WIDTH - (GAP/2), 0, 0),
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = columns,
+	})
 
-	return page
+	local rightColumn = make("Frame", {
+		Name = "Right",
+		Size = UDim2.fromOffset(CARD_WIDTH, 0),
+		Position = UDim2.new(0.5, GAP/2, 0, 0),
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Parent = columns,
+	})
+
+	make("UIListLayout", {
+	Padding = UDim.new(0, GAP),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = leftColumn,
+	})
+
+	make("UIListLayout", {
+		Padding = UDim.new(0, GAP),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = rightColumn,
+	})
+
+	local function updateCanvas()
+		local height = math.max(leftColumn.AbsoluteSize.Y, rightColumn.AbsoluteSize.Y)
+		page.CanvasSize = UDim2.new(0, 0, 0, height + 20)
+	end
+
+	leftColumn:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
+	rightColumn:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateCanvas)
+
+	return {
+		Page = page,
+		Left = leftColumn,
+		Right = rightColumn
+	}
 end
+
+
 
 ------------------------------------------------------------
 -- CREATE TABS
@@ -356,7 +394,8 @@ local tabButtons = {}
 local currentTab = "Main"
 
 for _,name in ipairs(tabs) do
-	pages[name] = makePage()
+	local pageData = makePage()
+	pages[name] = pageData
 
 	local btn = make("TextButton", {
 		Text = name,
@@ -374,20 +413,20 @@ for _,name in ipairs(tabs) do
 
 	btn.MouseButton1Click:Connect(function()
 		currentTab = name
-		for tab,page in pairs(pages) do
-			page.Visible = (tab == name)
+		for tab,data in pairs(pages) do
+			data.Page.Visible = (tab == name)
 		end
 	end)
 end
 
-pages["Main"].Visible = true
-
+pages["Main"].Page.Visible = true
 ------------------------------------------------------------
--- DEMO TOGGLES
+-- MAIN TAB
 ------------------------------------------------------------
 
+-- LEFT COLUMN (core aimbot logic)
 Toggles.AddToggleCard(
-	pages["Main"],
+	pages["Main"].Left,
 	"combat_rage",
 	"Rage Aimbot",
 	"Auto-aim at nearest enemy inside FOV.",
@@ -403,7 +442,7 @@ Toggles.AddToggleCard(
 )
 
 Toggles.AddSliderCard(
-	pages["Main"],
+	pages["Main"].Left,
 	"combat_rage_fov",
 	"Aim FOV",
 	nil,
@@ -417,7 +456,7 @@ Toggles.AddSliderCard(
 )
 
 Toggles.AddSliderCard(
-	pages["Main"],
+	pages["Main"].Left,
 	"combat_rage_smooth",
 	"Smooth",
 	nil,
@@ -430,35 +469,229 @@ Toggles.AddSliderCard(
 	SERVICES
 )
 
-Toggles.AddToggleCard(pages["Visuals"], "visuals_name", "Name ESP", "Show player names.", 1, false, CONFIG, SERVICES, function(state)
+-- RIGHT COLUMN (modifiers)
+Toggles.AddToggleCard(
+	pages["Main"].Right,
+	"combat_rage_autowall",
+	"Auto Wall",
+	"Allow targeting through walls.",
+	4,
+	false,
+	CONFIG,
+	SERVICES
+)
+
+Toggles.AddToggleCard(
+	pages["Main"].Right,
+	"combat_rage_teamcheck",
+	"Team Check",
+	"Ignore players on your team.",
+	5,
+	true,
+	CONFIG,
+	SERVICES
+)
+
+
+------------------------------------------------------------
+-- VISUALS TAB
+------------------------------------------------------------
+
+-- LEFT
+Toggles.AddToggleCard(pages["Visuals"].Left, "visuals_name", "Name ESP", "Show player names.", 1, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
 end)
 
-Toggles.AddToggleCard(pages["Visuals"], "visuals_health", "Health ESP", "Show player health.", 2, false, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["Visuals"].Left, "visuals_health", "Health ESP", "Show player health.", 2, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
 end)
 
-Toggles.AddToggleCard(pages["Visuals"], "visuals_box3d", "Boxes", "3D wireframe boxes.", 3, false, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["Visuals"].Left, "visuals_box3d", "Boxes", "3D wireframe boxes.", 3, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
 end)
 
-Toggles.AddToggleCard(pages["World"], "world_fullbright", "Fullbright", "Force max brightness.", 1, false, CONFIG, SERVICES, function(state)
+-- RIGHT
+Toggles.AddToggleCard(
+	pages["Visuals"].Right,
+	"visuals_player",
+	"Chams",
+	"Highlight player models.",
+	4,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("adminesp", ADMINESP_URL)
+		end
+	end
+)
+
+Toggles.AddToggleCard(
+	pages["Visuals"].Right,
+	"visuals_snaplines",
+	"Snaplines",
+	"Draw rods from your feet to enemies.",
+	5,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("adminesp", ADMINESP_URL)
+		end
+	end
+)
+
+Toggles.AddToggleCard(
+	pages["Visuals"].Right,
+	"visuals_team",
+	"Show Teammates",
+	"Render ESP on teammates.",
+	6,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("adminesp", ADMINESP_URL)
+		end
+	end
+)
+
+
+------------------------------------------------------------
+-- WORLD TAB
+------------------------------------------------------------
+
+-- LEFT
+
+Toggles.AddToggleDropDownCard(
+	pages["World"].Left,
+	"world_skybox",	
+	"world_skybox_dropdown",
+	"Skybox",
+	"Enable client skybox and select preset.",
+	1, 
+	-- Defaults
+	false,
+	"Eyes", 
+
+	-- Options provider
+	function()
+		return {
+			"Space Rocks",
+			"Red Planet",
+			"Cyan Space",
+			"Purple Space",
+			"Cyan Planet",
+			"Neon Borealis",
+			"Sunset",
+			"Aurora",
+			"Error",
+			"Dreamy",
+			"Emerald Borealis",
+			"War",
+			"Nuke",
+			"Storm",
+			"Violet Moon",
+			"Toon Moon",
+			"Red Moon",
+			"Crimson Despair",
+			"Corrupted",
+			"Dark Matter",
+			"Molten",
+			"Ghost",
+			"Battlerock",
+			"Stellar",
+			"Grid",
+			"Cyberpunk",
+			"Emerald Oblivion",
+			"Chromatic Horizon",
+			"Eyes",
+		}
+	end,
+
+	CONFIG,
+	SERVICES,
+
+	-- Toggle changed
+	function(state)
+		if state then
+			ensureFeatureLoaded("world_skybox", SKY_URL)
+		end
+	end,
+
+	-- Dropdown changed
+	function(selected)
+		-- ClientSky.lua handles this automatically
+	end
+)
+
+
+
+
+Toggles.AddToggleCard(pages["World"].Left, "world_fullbright", "Fullbright", "Force max brightness.", 2, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("world_fullbright", FULLBRIGHT_URL) end
 end)
 
-Toggles.AddToggleCard(pages["World"], "world_nofog", "No Fog", "Reduce fog.", 2, false, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["World"].Left, "world_nofog", "No Fog", "Reduce fog.", 3, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("world_nofog", NOFOG_URL) end
 end)
 
-Toggles.AddToggleCard(pages["World"], "world_weather", "Weather FX", "Client-side snow.", 3, false, CONFIG, SERVICES, function(state)
-	if state then ensureFeatureLoaded("world_weather", WEATHER_URL) end
-end)
 
-Toggles.AddToggleCard(pages["Misc"], "world_flight", "Flight", "Free noclip flight.", 1, false, CONFIG, SERVICES, function(state)
+-- RIGHT
+
+Toggles.AddToggleDropDownCard(
+	pages["World"].Right,
+	"world_weather",
+	"world_weather_type",
+	"Weather FX",
+	"Enable client weather and select type.",
+	1,
+	false,
+	"Snow",
+	function()
+		return {
+			"Snow",
+		}
+	end,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("world_weather", WEATHER_URL)
+		end
+	end,
+	function(selected)
+	end
+)
+
+Toggles.AddToggleCard(
+	pages["World"].Right,
+	"world_fastmode",
+	"Fast Mode",
+	"Disable textures & shadows for FPS boost.",
+	2,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("world_fastmode", FASTMODE_URL)
+		end
+	end
+)
+
+------------------------------------------------------------
+-- MISC TAB
+------------------------------------------------------------
+
+Toggles.AddToggleCard(pages["Misc"].Left, "world_flight", "Flight", "Free noclip flight.", 1, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("world_flight", FLIGHT_URL) end
 end)
 
-Toggles.AddToggleCard(pages["Misc"], "misc_speed", "Speed Boost", "Increase WalkSpeed.", 2, false, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["Misc"].Right, "misc_speed", "Speed Boost", "Increase WalkSpeed.", 2, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("misc_speed", SPEED_URL) end
 end)
 
