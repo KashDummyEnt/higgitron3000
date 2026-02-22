@@ -841,7 +841,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------------------
--- BUILD AVATAR + PREVIEW ESP (RED CHAMS ONLY)
+-- BUILD AVATAR + PREVIEW ESP
 ------------------------------------------------------------
 
 local PREVIEW_CHAMS_COLOR = Color3.fromRGB(255, 0, 0)
@@ -866,7 +866,7 @@ previewNameLabel.Visible = false
 previewNameLabel.Parent = previewPanel
 
 ------------------------------------------------------------
--- HEALTH BAR
+-- HEALTH BAR (PREVIEW LOOPING VERSION)
 ------------------------------------------------------------
 
 local previewHealthContainer = Instance.new("Frame")
@@ -877,22 +877,28 @@ previewHealthContainer.Visible = false
 previewHealthContainer.Parent = previewPanel
 
 local back = Instance.new("Frame")
-back.Size = UDim2.new(1,0,1,0)
-back.BackgroundColor3 = Color3.fromRGB(18,18,18)
+back.Size = UDim2.new(1, 0, 1, 0)
+back.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 back.BorderSizePixel = 0
 back.Parent = previewHealthContainer
 
-Instance.new("UICorner", back).CornerRadius = UDim.new(1,0)
+local backCorner = Instance.new("UICorner")
+backCorner.CornerRadius = UDim.new(1, 0)
+backCorner.Parent = back
 
 local fill = Instance.new("Frame")
-fill.Size = UDim2.new(1,0,1,0)
+fill.Size = UDim2.new(1, 0, 1, 0)
 fill.BorderSizePixel = 0
 fill.Parent = back
 
-Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(1, 0)
+fillCorner.Parent = fill
 
-local gradient = Instance.new("UIGradient")
-gradient.Parent = fill
+
+------------------------------------------------------------
+-- COLOR LOGIC (same as AdminESP)
+------------------------------------------------------------
 
 local function getHealthColor(pct: number)
 	return Color3.fromRGB(
@@ -902,35 +908,69 @@ local function getHealthColor(pct: number)
 	)
 end
 
-local function hookPreviewHealth()
-	if not preview then return end
-	local hum = preview:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-	
-	local function update()
-		local pct = 0
-		if hum.MaxHealth > 0 then
-			pct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-		end
-		
-		TweenService:Create(
-			fill,
-			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Size = UDim2.new(pct,0,1,0) }
-		):Play()
-		
-		local base = getHealthColor(pct)
-		
-		gradient.Color = ColorSequence.new{
-			ColorSequenceKeypoint.new(0, base),
-			ColorSequenceKeypoint.new(1, base:Lerp(Color3.new(1,1,1),0.25))
-		}
+------------------------------------------------------------
+-- PREVIEW LOOP ANIMATION (SAFE + STABLE)
+------------------------------------------------------------
+
+local previewHealthRunning = false
+local previewHealthConn: RBXScriptConnection? = nil
+local previewDirection = -1
+local previewSpeed = 0.4
+
+local function startPreviewHealthAnimation()
+
+	if previewHealthRunning then
+		return
 	end
-	
-	hum.HealthChanged:Connect(update)
-	update()
+
+	previewHealthRunning = true
+	previewDirection = -1
+
+	-- hard reset to known state
+	fill.Size = UDim2.new(1, 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+
+	if previewHealthConn then
+		previewHealthConn:Disconnect()
+		previewHealthConn = nil
+	end
+
+	previewHealthConn = RunService.RenderStepped:Connect(function(dt)
+
+		if not previewHealthRunning then
+			return
+		end
+
+		local currentPct = fill.Size.X.Scale or 1
+		local newPct = currentPct + (previewDirection * previewSpeed * dt)
+
+		if newPct <= 0 then
+			newPct = 0
+			previewDirection = 1
+		elseif newPct >= 1 then
+			newPct = 1
+			previewDirection = -1
+		end
+
+		fill.Size = UDim2.new(newPct, 0, 1, 0)
+
+		fill.BackgroundColor3 = Color3.fromRGB(
+			math.floor(255 * (1 - newPct)),
+			math.floor(255 * newPct),
+			0
+		)
+	end)
 end
 
+local function stopPreviewHealthAnimation()
+
+	previewHealthRunning = false
+
+	if previewHealthConn then
+		previewHealthConn:Disconnect()
+		previewHealthConn = nil
+	end
+end
 ------------------------------------------------------------
 -- CHAMS (RED ONLY)
 ------------------------------------------------------------
@@ -1039,27 +1079,59 @@ local function addPreviewBox()
 	box.Anchored = true
 	box.CanCollide = false
 	box.Material = Enum.Material.Plastic
-	box.Transparency = 0.75
+	box.Transparency = 0.65
 	box.Color = PREVIEW_CHAMS_COLOR
 	box.Parent = world
 	
 	previewBox = box
 end
 
+------------------------------------------------------------
+-- REFRESH PREVIEW ESP
+------------------------------------------------------------
+
 local function refreshPreviewESP()
+
 	clearPreviewESP()
 	removePreviewChams()
+
+	------------------------------------------------------------
+	-- 3D BOX
+	------------------------------------------------------------
 
 	if Toggles.GetState("visuals_box3d") then
 		addPreviewBox()
 	end
 
+	------------------------------------------------------------
+	-- CHAMS
+	------------------------------------------------------------
+
 	if Toggles.GetState("visuals_player") then
 		applyPreviewChams()
 	end
 
-	previewHealthContainer.Visible = Toggles.GetState("visuals_health") == true
-	previewNameLabel.Visible = Toggles.GetState("visuals_name") == true
+	------------------------------------------------------------
+	-- HEALTH
+	------------------------------------------------------------
+
+local healthEnabled = Toggles.GetState("visuals_health") == true
+previewHealthContainer.Visible = healthEnabled
+
+if healthEnabled then
+	startPreviewHealthAnimation()
+else
+	stopPreviewHealthAnimation()
+	fill.Size = UDim2.new(1, 0, 1, 0)
+	fill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+end
+
+	------------------------------------------------------------
+	-- NAME
+	------------------------------------------------------------
+
+	local nameEnabled = Toggles.GetState("visuals_name") == true
+	previewNameLabel.Visible = nameEnabled
 end
 
 ------------------------------------------------------------
@@ -1092,7 +1164,6 @@ local function buildAvatar()
 
 	previewNameLabel.Text = player.DisplayName
 
-	hookPreviewHealth()
 	refreshPreviewESP()
 end
 
@@ -1204,7 +1275,13 @@ RunService.RenderStepped:Connect(function(dt)
 	cam.CFrame = CFrame.new(center + Vector3.new(0,0,distance), center)
 
 	if previewBox then
-		previewBox.Size = size
+	local paddedSize = Vector3.new(
+			size.X + 0.05, -- tiny width increase
+			size.Y,
+			size.Z
+		)
+
+		previewBox.Size = paddedSize
 		previewBox.CFrame = cf
 	end
 end)
