@@ -117,8 +117,46 @@ local popup = make("Frame", {
 	Visible = false,
 	Parent = screen,
 })
+
+
 addCorner(popup, 16)
 addStroke(popup, 1, CONFIG.Stroke, 0.2)
+
+------------------------------------------------------------
+-- AVATAR PREVIEW PANEL (RIGHT SIDE OF MENU)
+------------------------------------------------------------
+
+local PREVIEW_WIDTH = 220
+local PREVIEW_GAP = 16
+
+local previewPanel = make("Frame", {
+	Size = UDim2.fromOffset(PREVIEW_WIDTH, CONFIG.PopupSize.Y),
+	Position = UDim2.new(1, PREVIEW_GAP, 0, 0),
+	AnchorPoint = Vector2.new(0, 0),
+	BackgroundColor3 = CONFIG.Bg,
+	Visible = false,
+	Parent = popup,
+})
+addCorner(previewPanel, 16)
+addStroke(previewPanel, 1, CONFIG.Stroke, 0.2)
+
+local viewport = make("ViewportFrame", {
+	Size = UDim2.new(1, -16, 1, -16),
+	Position = UDim2.fromOffset(8, 8),
+	BackgroundTransparency = 1,
+	Ambient = Color3.fromRGB(210,210,210),
+	LightColor = Color3.fromRGB(255,255,255),
+	LightDirection = Vector3.new(-1,-1,-0.5),
+	Parent = previewPanel,
+})
+
+local world = Instance.new("WorldModel")
+world.Parent = viewport
+
+local cam = Instance.new("Camera")
+cam.FieldOfView = 30
+cam.Parent = viewport
+viewport.CurrentCamera = cam
 
 ------------------------------------------------------------
 -- HEADER
@@ -290,15 +328,103 @@ Toggles.AddToggleCard(pages["Main"], "esp", "ESP", "Second placeholder.", 2, fal
 Toggles.AddToggleCard(pages["Settings"], "settings_rgb_accent", "RGB Accent", "Animate accent color.", 1, false, CONFIG, SERVICES, nil)
 
 ------------------------------------------------------------
+-- BUILD AVATAR PREVIEW
+------------------------------------------------------------
+
+local preview: Model? = nil
+local rotationY = 0
+
+local function buildAvatar()
+	world:ClearAllChildren()
+
+	local desc = Players:GetHumanoidDescriptionFromUserId(player.UserId)
+	local rig = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+
+	rig.Parent = world
+	RunService.Heartbeat:Wait()
+
+	for _, v in ipairs(rig:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CanCollide = false
+			v.Massless = true
+		elseif v:IsA("Script") or v:IsA("LocalScript") then
+			v:Destroy()
+		end
+	end
+
+	rig.PrimaryPart = rig:FindFirstChild("HumanoidRootPart")
+	preview = rig
+end
+
+buildAvatar()
+
+RunService.RenderStepped:Connect(function()
+	if not preview or not preview.PrimaryPart then return end
+
+	preview:SetPrimaryPartCFrame(
+		CFrame.new(0,0,0) *
+		CFrame.Angles(0, math.rad(180 + rotationY), 0)
+	)
+
+	local cf, size = preview:GetBoundingBox()
+	local center = cf.Position
+
+	local maxDim = math.max(size.X, size.Y, size.Z)
+	local fov = math.rad(cam.FieldOfView)
+	local distance = (maxDim / (2 * math.tan(fov / 2))) * 1.25
+
+	local cameraPosition = center + Vector3.new(0, 0, distance)
+	cam.CFrame = CFrame.new(cameraPosition, center)
+end)
+
+------------------------------------------------------------
+-- DRAG ROTATION
+------------------------------------------------------------
+
+local dragging = false
+local lastX = 0
+local speed = 0.45
+
+viewport.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		lastX = input.Position.X
+	end
+end)
+
+viewport.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if not dragging then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch then
+		local delta = input.Position.X - lastX
+		lastX = input.Position.X
+		rotationY += delta * speed
+	end
+end)
+
+------------------------------------------------------------
 -- OPEN/CLOSE
 ------------------------------------------------------------
 
+local function setMenuVisible(state)
+	popup.Visible = state
+	previewPanel.Visible = state
+end
+
 toggleBtn.MouseButton1Click:Connect(function()
-	popup.Visible = not popup.Visible
+	setMenuVisible(not popup.Visible)
 end)
 
 close.MouseButton1Click:Connect(function()
-	popup.Visible = false
+	setMenuVisible(false)
 end)
 
 ------------------------------------------------------------
