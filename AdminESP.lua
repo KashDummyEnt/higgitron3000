@@ -690,16 +690,23 @@ end
 			-- GLOW ENFORCEMENT
 			------------------------------------------------------------------
 
-			if featureState.Player then
-				if not char:FindFirstChild(GLOW_TAG) then
-					buildGlow(plr)
-				end
-			else
-				local glow = char:FindFirstChild(GLOW_TAG)
-				if glow then
-					glow:Destroy()
-				end
-			end
+if featureState.Player then
+	local glow = char:FindFirstChild(GLOW_TAG)
+
+	if not glow then
+		buildGlow(plr)
+		glow = char:FindFirstChild(GLOW_TAG)
+	end
+
+	if glow and glow:IsA("Highlight") then
+		glow.FillColor = getESPColor(plr) -- LIVE team reactive update
+	end
+else
+	local glow = char:FindFirstChild(GLOW_TAG)
+	if glow then
+		glow:Destroy()
+	end
+end
 		end
 	end)
 end
