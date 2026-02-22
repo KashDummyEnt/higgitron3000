@@ -87,7 +87,7 @@ local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron300
 local SKY_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/ClientSky.lua"
 local FULLBRIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Fullbright.lua"
 local NOFOG_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/NoFog.lua"
-local ADMINESP_URL = "local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/AdminESP.lua""
+local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/AdminESP.lua"
 local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Flight.lua"
 local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/PlayerSpeed.lua"
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Rage.lua"
@@ -258,6 +258,8 @@ local cam = Instance.new("Camera")
 cam.FieldOfView = 30
 cam.Parent = viewport
 viewport.CurrentCamera = cam
+
+
 
 ------------------------------------------------------------
 -- HEADER
@@ -839,14 +841,236 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------------------
+-- BUILD AVATAR + PREVIEW ESP (RED CHAMS ONLY)
+------------------------------------------------------------
+
+local PREVIEW_CHAMS_COLOR = Color3.fromRGB(255, 0, 0)
+
+local preview: Model? = nil
+local previewBox: Part? = nil
+
+------------------------------------------------------------
+-- NAME
+------------------------------------------------------------
+
+local previewNameLabel = Instance.new("TextLabel")
+previewNameLabel.Name = "PreviewName"
+previewNameLabel.Size = UDim2.new(1, -40, 0, 22)
+previewNameLabel.Position = UDim2.new(0, 20, 0, 12)
+previewNameLabel.BackgroundTransparency = 1
+previewNameLabel.Font = Enum.Font.GothamSemibold
+previewNameLabel.TextScaled = true
+previewNameLabel.TextColor3 = Color3.fromRGB(255,70,70)
+previewNameLabel.TextStrokeTransparency = 0.5
+previewNameLabel.Visible = false
+previewNameLabel.Parent = previewPanel
+
+------------------------------------------------------------
+-- HEALTH BAR
+------------------------------------------------------------
+
+local previewHealthContainer = Instance.new("Frame")
+previewHealthContainer.Size = UDim2.new(1, -40, 0, 8)
+previewHealthContainer.Position = UDim2.new(0, 20, 1, -30)
+previewHealthContainer.BackgroundTransparency = 1
+previewHealthContainer.Visible = false
+previewHealthContainer.Parent = previewPanel
+
+local back = Instance.new("Frame")
+back.Size = UDim2.new(1,0,1,0)
+back.BackgroundColor3 = Color3.fromRGB(18,18,18)
+back.BorderSizePixel = 0
+back.Parent = previewHealthContainer
+
+Instance.new("UICorner", back).CornerRadius = UDim.new(1,0)
+
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(1,0,1,0)
+fill.BorderSizePixel = 0
+fill.Parent = back
+
+Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+
+local gradient = Instance.new("UIGradient")
+gradient.Parent = fill
+
+local function getHealthColor(pct: number)
+	return Color3.fromRGB(
+		math.floor(255 * (1 - pct)),
+		math.floor(255 * pct),
+		70
+	)
+end
+
+local function hookPreviewHealth()
+	if not preview then return end
+	local hum = preview:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	
+	local function update()
+		local pct = 0
+		if hum.MaxHealth > 0 then
+			pct = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+		end
+		
+		TweenService:Create(
+			fill,
+			TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = UDim2.new(pct,0,1,0) }
+		):Play()
+		
+		local base = getHealthColor(pct)
+		
+		gradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, base),
+			ColorSequenceKeypoint.new(1, base:Lerp(Color3.new(1,1,1),0.25))
+		}
+	end
+	
+	hum.HealthChanged:Connect(update)
+	update()
+end
+
+------------------------------------------------------------
+-- CHAMS (RED ONLY)
+------------------------------------------------------------
+
+local originalPartState: {[BasePart]: {
+	Material: Enum.Material,
+	Color: Color3,
+	Transparency: number
+}} = {}
+
+local originalTextureState: {[Instance]: any} = {}
+local originalParentState: {[Instance]: Instance} = {}
+
+local function applyPreviewChams()
+	if not preview then return end
+
+	for _, inst in ipairs(preview:GetDescendants()) do
+
+		if inst:IsA("Decal") or inst:IsA("Texture") then
+			originalTextureState[inst] = inst.Transparency
+			inst.Transparency = 1
+
+		elseif inst:IsA("SpecialMesh") then
+			originalTextureState[inst] = inst.TextureId
+			inst.TextureId = ""
+
+		elseif inst:IsA("MeshPart") then
+			originalTextureState[inst] = inst.TextureID
+			inst.TextureID = ""
+
+		elseif inst:IsA("SurfaceAppearance")
+			or inst:IsA("Shirt")
+			or inst:IsA("Pants")
+			or inst:IsA("ShirtGraphic") then
+
+			originalParentState[inst] = inst.Parent
+			inst.Parent = nil
+		end
+	end
+
+	for _, inst in ipairs(preview:GetDescendants()) do
+		if inst:IsA("BasePart") then
+
+			if not originalPartState[inst] then
+				originalPartState[inst] = {
+					Material = inst.Material,
+					Color = inst.Color,
+					Transparency = inst.Transparency
+				}
+			end
+
+			inst.Material = Enum.Material.Neon
+			inst.Color = PREVIEW_CHAMS_COLOR
+			inst.Transparency = 0
+		end
+	end
+end
+
+local function removePreviewChams()
+
+	for part, data in pairs(originalPartState) do
+		if part and part.Parent then
+			part.Material = data.Material
+			part.Color = data.Color
+			part.Transparency = data.Transparency
+		end
+	end
+	table.clear(originalPartState)
+
+	for inst, saved in pairs(originalTextureState) do
+		if inst and inst.Parent then
+			if inst:IsA("Decal") or inst:IsA("Texture") then
+				inst.Transparency = saved
+			elseif inst:IsA("SpecialMesh") then
+				inst.TextureId = saved
+			elseif inst:IsA("MeshPart") then
+				inst.TextureID = saved
+			end
+		end
+	end
+	table.clear(originalTextureState)
+
+	for inst, parent in pairs(originalParentState) do
+		if inst and parent then
+			inst.Parent = parent
+		end
+	end
+	table.clear(originalParentState)
+end
+
+------------------------------------------------------------
+-- BOX (RED ONLY)
+------------------------------------------------------------
+
+local function clearPreviewESP()
+	if previewBox then
+		previewBox:Destroy()
+		previewBox = nil
+	end
+end
+
+local function addPreviewBox()
+	if not preview then return end
+	
+	local box = Instance.new("Part")
+	box.Anchored = true
+	box.CanCollide = false
+	box.Material = Enum.Material.Plastic
+	box.Transparency = 0.75
+	box.Color = PREVIEW_CHAMS_COLOR
+	box.Parent = world
+	
+	previewBox = box
+end
+
+local function refreshPreviewESP()
+	clearPreviewESP()
+	removePreviewChams()
+
+	if Toggles.GetState("visuals_box3d") then
+		addPreviewBox()
+	end
+
+	if Toggles.GetState("visuals_player") then
+		applyPreviewChams()
+	end
+
+	previewHealthContainer.Visible = Toggles.GetState("visuals_health") == true
+	previewNameLabel.Visible = Toggles.GetState("visuals_name") == true
+end
+
+------------------------------------------------------------
 -- BUILD AVATAR
 ------------------------------------------------------------
 
-local preview: Model? = nil
-
-
 local function buildAvatar()
 	world:ClearAllChildren()
+	preview = nil
+	clearPreviewESP()
+	removePreviewChams()
 
 	local desc = Players:GetHumanoidDescriptionFromUserId(player.UserId)
 	local rig = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
@@ -865,18 +1089,30 @@ local function buildAvatar()
 
 	rig.PrimaryPart = rig:FindFirstChild("HumanoidRootPart")
 	preview = rig
+
+	previewNameLabel.Text = player.DisplayName
+
+	hookPreviewHealth()
+	refreshPreviewESP()
 end
+
+------------------------------------------------------------
+-- TOGGLES
+------------------------------------------------------------
+
+Toggles.Subscribe("visuals_box3d", refreshPreviewESP)
+Toggles.Subscribe("visuals_health", refreshPreviewESP)
+Toggles.Subscribe("visuals_name", refreshPreviewESP)
+Toggles.Subscribe("visuals_player", refreshPreviewESP)
 
 buildAvatar()
 
-
 ------------------------------------------------------------
--- PREVIEW MOTION SYSTEM (DRAG + INERTIA + AUTO BOUNCE)
+-- PREVIEW MOTION SYSTEM (UNCHANGED EXCEPT REMOVED 3D HEALTH)
 ------------------------------------------------------------
 
 local draggingPreview = false
 local lastX = 0
-
 local rotationY = 0
 local velocity = 0
 
@@ -886,16 +1122,11 @@ local inertiaDamping = 0.92
 local idleTimer = 0
 local idleDelay = 1.2
 
--- Bounce system
-local autoDirection = 1
-local autoVelocity = 0
-local autoAcceleration = 45
-local autoDamping = 0.97
-local maxAngle = 40
-
-------------------------------------------------------------
--- INPUT
-------------------------------------------------------------
+local springTargetAngle = 35
+local springFrequency = 0.6
+local springStiffness = 8
+local springDamping = 6
+local springVelocity = 0
 
 viewport.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -930,31 +1161,15 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
-------------------------------------------------------------
--- MOTION LOOP (DRAG + INERTIA + SPRING BOUNCE)
-------------------------------------------------------------
-
--- Spring settings
-local springTargetAngle = 35      -- max left/right swing
-local springFrequency = 0.6       -- how fast it oscillates
-local springStiffness = 8         -- pull strength
-local springDamping = 6           -- resistance
-local springVelocity = 0
-
 RunService.RenderStepped:Connect(function(dt)
 
 	if not preview or not preview.PrimaryPart then return end
 
-	-- Track idle time
 	if not draggingPreview then
 		idleTimer += dt
 	end
 
-	--------------------------------------------------------
-	-- INERTIA (before idle delay)
-	--------------------------------------------------------
 	if not draggingPreview and idleTimer <= idleDelay then
-		
 		rotationY += velocity
 		velocity *= inertiaDamping
 		
@@ -963,14 +1178,8 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 
-	--------------------------------------------------------
-	-- SPRING AUTO BOUNCE (after idle delay)
-	--------------------------------------------------------
 	if not draggingPreview and idleTimer > idleDelay then
-		
-		-- Smooth oscillating target (never clamps)
 		local target = math.sin(tick() * springFrequency) * springTargetAngle
-		
 		local displacement = target - rotationY
 		local force = displacement * springStiffness
 		
@@ -980,17 +1189,11 @@ RunService.RenderStepped:Connect(function(dt)
 		rotationY += springVelocity * dt
 	end
 
-	--------------------------------------------------------
-	-- APPLY ROTATION
-	--------------------------------------------------------
 	preview:SetPrimaryPartCFrame(
 		CFrame.new(0,0,0) *
 		CFrame.Angles(0, math.rad(180 + rotationY), 0)
 	)
 
-	--------------------------------------------------------
-	-- CAMERA FIT
-	--------------------------------------------------------
 	local cf, size = preview:GetBoundingBox()
 	local center = cf.Position
 
@@ -999,6 +1202,11 @@ RunService.RenderStepped:Connect(function(dt)
 	local distance = (maxDim / (2 * math.tan(fov / 2))) * 1.25
 
 	cam.CFrame = CFrame.new(center + Vector3.new(0,0,distance), center)
+
+	if previewBox then
+		previewBox.Size = size
+		previewBox.CFrame = cf
+	end
 end)
 
 ------------------------------------------------------------
