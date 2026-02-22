@@ -6,10 +6,23 @@ local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
-local Toggles = G.__HIGGI_TOGGLES_API
+local function waitForTogglesApi(timeout: number): any?
+	local start = os.clock()
+	while os.clock() - start < timeout do
+		local api = G.__HIGGI_TOGGLES_API
+		if type(api) == "table"
+		and type(api.Subscribe) == "function"
+		and type(api.GetState) == "function" then
+			return api
+		end
+		task.wait(0.05)
+	end
+	return nil
+end
 
+local Toggles = waitForTogglesApi(6)
 if not Toggles then
-	warn("EmulatorBypass: Toggle API missing.")
+	warn("[EmulatorBypass] Toggle API missing.")
 	return
 end
 
