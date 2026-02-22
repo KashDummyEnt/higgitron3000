@@ -696,6 +696,20 @@ Toggles.AddToggleCard(pages["Misc"].Right, "misc_speed", "Speed Boost", "Increas
 end)
 
 ------------------------------------------------------------
+-- SETTINGS TAB
+------------------------------------------------------------
+
+Toggles.AddToggleCard(
+	pages["Settings"].Left,
+	"settings_rgb_accent",
+	"RGB Accent",
+	"Cycle accent color dynamically.",
+	1,
+	false,
+	CONFIG,
+	SERVICES
+)
+------------------------------------------------------------
 -- RGB ACCENT SYSTEM (PROPER SUBSCRIBE VERSION)
 ------------------------------------------------------------
 
