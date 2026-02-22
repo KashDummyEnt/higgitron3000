@@ -153,6 +153,18 @@ local screen = make("ScreenGui", {
 	Parent = playerGui,
 })
 
+screen.DisplayOrder = 9999
+
+local inputBlocker = make("TextButton", {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Text = "",
+	AutoButtonColor = false,
+	Visible = false,
+	ZIndex = 1,
+	Parent = screen,
+})
+
 ------------------------------------------------------------
 -- SERVICES TABLE (REQUIRED FOR TOGGLE MODULE)
 ------------------------------------------------------------
@@ -196,6 +208,8 @@ local popupGroup = make("Frame", {
 	Visible = false,
 	Parent = screen,
 })
+
+popupGroup.ZIndex = 2
 
 ------------------------------------------------------------
 -- MAIN MENU PANEL
@@ -829,7 +843,7 @@ end)
 ------------------------------------------------------------
 
 local preview: Model? = nil
-local rotationY = 0
+
 
 local function buildAvatar()
 	world:ClearAllChildren()
@@ -855,37 +869,40 @@ end
 
 buildAvatar()
 
-RunService.RenderStepped:Connect(function()
-	if not preview or not preview.PrimaryPart then return end
-
-	preview:SetPrimaryPartCFrame(
-		CFrame.new(0,0,0) *
-		CFrame.Angles(0, math.rad(180 + rotationY), 0)
-	)
-
-	local cf, size = preview:GetBoundingBox()
-	local center = cf.Position
-
-	local maxDim = math.max(size.X, size.Y, size.Z)
-	local fov = math.rad(cam.FieldOfView)
-	local distance = (maxDim / (2 * math.tan(fov / 2))) * 1.25
-
-	cam.CFrame = CFrame.new(center + Vector3.new(0,0,distance), center)
-end)
 
 ------------------------------------------------------------
--- ROTATE PREVIEW
+-- PREVIEW MOTION SYSTEM (DRAG + INERTIA + AUTO BOUNCE)
 ------------------------------------------------------------
 
 local draggingPreview = false
 local lastX = 0
-local speed = 0.45
+
+local rotationY = 0
+local velocity = 0
+
+local dragSensitivity = 0.4
+local inertiaDamping = 0.92
+
+local idleTimer = 0
+local idleDelay = 1.2
+
+-- Bounce system
+local autoDirection = 1
+local autoVelocity = 0
+local autoAcceleration = 45
+local autoDamping = 0.97
+local maxAngle = 40
+
+------------------------------------------------------------
+-- INPUT
+------------------------------------------------------------
 
 viewport.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
 		draggingPreview = true
 		lastX = input.Position.X
+		idleTimer = 0
 	end
 end)
 
@@ -898,22 +915,113 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
 	if not draggingPreview then return end
+
 	if input.UserInputType == Enum.UserInputType.MouseMovement
 	or input.UserInputType == Enum.UserInputType.Touch then
+		
 		local delta = input.Position.X - lastX
 		lastX = input.Position.X
-		rotationY += delta * speed
+		
+		local applied = delta * dragSensitivity
+		
+		rotationY += applied
+		velocity = applied
+		idleTimer = 0
 	end
+end)
+
+------------------------------------------------------------
+-- MOTION LOOP (DRAG + INERTIA + SPRING BOUNCE)
+------------------------------------------------------------
+
+-- Spring settings
+local springTargetAngle = 35      -- max left/right swing
+local springFrequency = 0.6       -- how fast it oscillates
+local springStiffness = 8         -- pull strength
+local springDamping = 6           -- resistance
+local springVelocity = 0
+
+RunService.RenderStepped:Connect(function(dt)
+
+	if not preview or not preview.PrimaryPart then return end
+
+	-- Track idle time
+	if not draggingPreview then
+		idleTimer += dt
+	end
+
+	--------------------------------------------------------
+	-- INERTIA (before idle delay)
+	--------------------------------------------------------
+	if not draggingPreview and idleTimer <= idleDelay then
+		
+		rotationY += velocity
+		velocity *= inertiaDamping
+		
+		if math.abs(velocity) < 0.01 then
+			velocity = 0
+		end
+	end
+
+	--------------------------------------------------------
+	-- SPRING AUTO BOUNCE (after idle delay)
+	--------------------------------------------------------
+	if not draggingPreview and idleTimer > idleDelay then
+		
+		-- Smooth oscillating target (never clamps)
+		local target = math.sin(tick() * springFrequency) * springTargetAngle
+		
+		local displacement = target - rotationY
+		local force = displacement * springStiffness
+		
+		springVelocity += force * dt
+		springVelocity -= springVelocity * springDamping * dt
+		
+		rotationY += springVelocity * dt
+	end
+
+	--------------------------------------------------------
+	-- APPLY ROTATION
+	--------------------------------------------------------
+	preview:SetPrimaryPartCFrame(
+		CFrame.new(0,0,0) *
+		CFrame.Angles(0, math.rad(180 + rotationY), 0)
+	)
+
+	--------------------------------------------------------
+	-- CAMERA FIT
+	--------------------------------------------------------
+	local cf, size = preview:GetBoundingBox()
+	local center = cf.Position
+
+	local maxDim = math.max(size.X, size.Y, size.Z)
+	local fov = math.rad(cam.FieldOfView)
+	local distance = (maxDim / (2 * math.tan(fov / 2))) * 1.25
+
+	cam.CFrame = CFrame.new(center + Vector3.new(0,0,distance), center)
 end)
 
 ------------------------------------------------------------
 -- OPEN / CLOSE
 ------------------------------------------------------------
 
+local function setMenuState(state: boolean)
+	popupGroup.Visible = state
+	inputBlocker.Visible = state
+	
+	if state then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
+	else
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
+	end
+end
+
 toggleBtn.MouseButton1Click:Connect(function()
-	popupGroup.Visible = not popupGroup.Visible
+	setMenuState(not popupGroup.Visible)
 end)
 
 close.MouseButton1Click:Connect(function()
-	popupGroup.Visible = false
+	setMenuState(false)
 end)
