@@ -336,6 +336,23 @@ function ToggleSwitches.AddToggleCard(parent, key, title, desc, order, defaultSt
 
 	applyVisual(Store.states[key], true)
 
+--============================================================
+-- Accent subscription (for live RGB updates)
+--============================================================
+if services.SubscribeAccent then
+	services.SubscribeAccent(function(newAccent)
+		-- Only recolor if toggle is ON
+		if Store.states[key] then
+			local trackStroke = track:FindFirstChildOfClass("UIStroke")
+			if trackStroke then
+				track.BackgroundColor3 = newAccent
+				trackStroke.Color = newAccent
+				trackStroke.Transparency = 0.05
+			end
+		end
+	end)
+end
+
 	if not isTouchDevice(UserInputService) then
 		card.MouseEnter:Connect(function()
 			card.BackgroundColor3 = config.Bg3
@@ -1045,6 +1062,16 @@ function ToggleSwitches.AddSliderCard(
 	})
 	addCorner(knob, 999)
 	addStroke(knob, 1, Color3.fromRGB(0, 0, 0), 0.4)
+
+--============================================================
+-- Accent subscription (for live RGB updates)
+--============================================================
+if services.SubscribeAccent then
+	services.SubscribeAccent(function(newAccent)
+		fill.BackgroundColor3 = newAccent
+		knob.BackgroundColor3 = newAccent
+	end)
+end
 
 	------------------------------------------------
 	-- Logic
