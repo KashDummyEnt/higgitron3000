@@ -562,6 +562,22 @@ function ToggleSwitches.AddToggleDropDownCard(
 
 	applyToggleVisual(Store.states[toggleKey], true)
 
+--============================================================
+-- Accent subscription (for live RGB updates)
+--============================================================
+if services.SubscribeAccent then
+	services.SubscribeAccent(function(newAccent)
+		if Store.states[toggleKey] then
+			local trackStroke = track:FindFirstChildOfClass("UIStroke")
+			if trackStroke then
+				track.BackgroundColor3 = newAccent
+				trackStroke.Color = newAccent
+				trackStroke.Transparency = 0.05
+			end
+		end
+	end)
+end
+
 	switchBtn.MouseButton1Click:Connect(function()
 		setToggleState(not Store.states[toggleKey])
 	end)
