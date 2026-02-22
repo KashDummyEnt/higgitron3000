@@ -1,6 +1,6 @@
 --!strict
 -- CleanMenu.lua
--- HIGGI v2 Clean Layout (Centered 2 Column Grid + RGB Toggle)
+-- HIGGI v2 Polished Layout
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -20,8 +20,8 @@ local CONFIG = {
 
 	PopupSize = Vector2.new(600, 400),
 
-	Accent = Color3.fromRGB(255, 0, 255),
 	BaseAccent = Color3.fromRGB(255, 0, 255),
+	Accent = Color3.fromRGB(255, 0, 255),
 
 	Bg = Color3.fromRGB(14, 14, 16),
 	Bg2 = Color3.fromRGB(20, 20, 24),
@@ -88,9 +88,7 @@ G.__HIGGI_TOGGLES_API = Toggles
 ------------------------------------------------------------
 
 local old = playerGui:FindFirstChild(CONFIG.GuiName)
-if old then
-	old:Destroy()
-end
+if old then old:Destroy() end
 
 local screen = make("ScreenGui", {
 	Name = CONFIG.GuiName,
@@ -180,8 +178,20 @@ make("UIListLayout", {
 	Parent = tabBar,
 })
 
+-- Thin divider line
+make("Frame", {
+	Size = UDim2.new(1, -24, 0, 1),
+	Position = UDim2.new(0, 12, 0, 84),
+	BackgroundColor3 = CONFIG.Stroke,
+	BackgroundTransparency = 0.6,
+	BorderSizePixel = 0,
+	Parent = popup,
+})
+
 local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
 local pages = {}
+local tabButtons = {}
+local currentTab = "Main"
 
 ------------------------------------------------------------
 -- CONTENT AREA
@@ -206,8 +216,6 @@ local function makePage(name)
 	})
 
 	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 12),
-		PaddingRight = UDim.new(0, 12),
 		PaddingTop = UDim.new(0, 12),
 		PaddingBottom = UDim.new(0, 12),
 		Parent = page,
@@ -231,6 +239,10 @@ local function makePage(name)
 	return page
 end
 
+------------------------------------------------------------
+-- CREATE TABS
+------------------------------------------------------------
+
 for _,name in ipairs(tabs) do
 	pages[name] = makePage(name)
 
@@ -246,11 +258,13 @@ for _,name in ipairs(tabs) do
 	addCorner(btn, 8)
 	addStroke(btn, 1, CONFIG.Stroke, 0.3)
 
+	tabButtons[name] = btn
+
 	btn.MouseButton1Click:Connect(function()
-		for _,p in pairs(pages) do
-			p.Visible = false
+		currentTab = name
+		for tab,page in pairs(pages) do
+			page.Visible = (tab == name)
 		end
-		pages[name].Visible = true
 	end)
 end
 
@@ -290,10 +304,6 @@ Toggles.AddToggleCard(
 	nil
 )
 
-------------------------------------------------------------
--- RGB TOGGLE (Settings Tab)
-------------------------------------------------------------
-
 Toggles.AddToggleCard(
 	pages["Settings"],
 	"settings_rgb_accent",
@@ -319,7 +329,7 @@ close.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------------------
--- RGB SYSTEM
+-- RGB + TAB ACTIVE VISUALS
 ------------------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
@@ -332,4 +342,14 @@ RunService.RenderStepped:Connect(function()
 	end
 
 	title.TextColor3 = CONFIG.Accent
+
+	for name,btn in pairs(tabButtons) do
+		if name == currentTab then
+			btn.BackgroundColor3 = CONFIG.Accent
+			btn.TextColor3 = Color3.fromRGB(0,0,0)
+		else
+			btn.BackgroundColor3 = CONFIG.Bg2
+			btn.TextColor3 = CONFIG.Text
+		end
+	end
 end)
