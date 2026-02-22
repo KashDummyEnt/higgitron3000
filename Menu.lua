@@ -156,19 +156,29 @@ addCorner(close, 8)
 addStroke(close, 1, CONFIG.Stroke, 0.25)
 
 ------------------------------------------------------------
--- TAB BAR
+-- TAB BAR (CENTERED)
 ------------------------------------------------------------
 
+local TAB_WIDTH = 110
+local TAB_GAP = 8
+local TAB_COUNT = 5
+
+local TOTAL_TAB_WIDTH =
+	(TAB_WIDTH * TAB_COUNT) +
+	(TAB_GAP * (TAB_COUNT - 1))
+
 local tabBar = make("Frame", {
-	Size = UDim2.new(1, -24, 0, 40),
-	Position = UDim2.new(0, 12, 0, 54),
+	Size = UDim2.fromOffset(TOTAL_TAB_WIDTH, 40),
+	Position = UDim2.new(0.5, 0, 0, 54),
+	AnchorPoint = Vector2.new(0.5, 0),
 	BackgroundTransparency = 1,
 	Parent = popup,
 })
 
 make("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
-	Padding = UDim.new(0, 8),
+	Padding = UDim.new(0, TAB_GAP),
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	Parent = tabBar,
 })
 
