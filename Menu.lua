@@ -752,9 +752,9 @@ Toggles.AddToggleCard(
 	pages["Settings"].Right,
 	"settings_emulator_bypass",
 	"Emulator Bypass",
-	"Block keyboard and mouse when touch is detected.",
+	"Bypasses Emulator Detections.",
 	2,
-	false,
+	true,
 	CONFIG,
 	SERVICES,
 	function(state)
