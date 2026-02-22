@@ -63,7 +63,10 @@ end
 
 local function createAfterImage(char: Model, moveDirection: Vector3)
 	if not char then return end
-
+	
+	-- HARD FILTER: only real character in Workspace
+	if char.Parent ~= workspace then return end
+	
 	local offset = Vector3.zero
 	if moveDirection.Magnitude > 0 then
 		offset = -moveDirection.Unit * BACK_OFFSET_DISTANCE
@@ -76,47 +79,50 @@ local function createAfterImage(char: Model, moveDirection: Vector3)
 	local ghostColor = getNextGradientColor()
 
 	for _, obj in ipairs(char:GetDescendants()) do
-		if obj:IsA("BasePart") then
-			
-			if obj.Name == "HumanoidRootPart" then
-				continue
-			end
-			
-			if obj.Parent and obj.Parent:IsA("Accessory") then
-				continue
-			end
-
-			local newPart = Instance.new(obj.ClassName)
-			newPart.Size = obj.Size
-			newPart.CFrame = obj.CFrame + offset
-			newPart.Anchored = true
-			newPart.CanCollide = false
-			newPart.CastShadow = false
-			newPart.Transparency = START_TRANSPARENCY
-			newPart.Material = Enum.Material.SmoothPlastic
-			newPart.Color = ghostColor
-
-			if obj:IsA("MeshPart") then
-				newPart.MeshId = obj.MeshId
-				newPart.TextureID = ""
-				newPart.RenderFidelity = obj.RenderFidelity
-			end
-
-			local mesh = obj:FindFirstChildOfClass("SpecialMesh")
-			if mesh then
-				local newMesh = mesh:Clone()
-				newMesh.TextureId = ""
-				newMesh.Parent = newPart
-			end
-
-			newPart.Parent = ghostModel
-
-			TweenService:Create(
-				newPart,
-				TweenInfo.new(FADE_TIME),
-				{ Transparency = 1 }
-			):Play()
+		
+		-- ONLY BaseParts. Never touch scripts, attachments, etc.
+		if not obj:IsA("BasePart") then
+			continue
 		end
+		
+		if obj.Name == "HumanoidRootPart" then
+			continue
+		end
+		
+		if obj.Parent and obj.Parent:IsA("Accessory") then
+			continue
+		end
+
+		local newPart = Instance.new(obj.ClassName)
+		newPart.Size = obj.Size
+		newPart.CFrame = obj.CFrame + offset
+		newPart.Anchored = true
+		newPart.CanCollide = false
+		newPart.CastShadow = false
+		newPart.Transparency = START_TRANSPARENCY
+		newPart.Material = Enum.Material.SmoothPlastic
+		newPart.Color = ghostColor
+
+		if obj:IsA("MeshPart") then
+			newPart.MeshId = obj.MeshId
+			newPart.TextureID = ""
+			newPart.RenderFidelity = obj.RenderFidelity
+		end
+
+		local mesh = obj:FindFirstChildOfClass("SpecialMesh")
+		if mesh then
+			local newMesh = mesh:Clone()
+			newMesh.TextureId = ""
+			newMesh.Parent = newPart
+		end
+
+		newPart.Parent = ghostModel
+
+		TweenService:Create(
+			newPart,
+			TweenInfo.new(FADE_TIME),
+			{ Transparency = 1 }
+		):Play()
 	end
 
 	task.delay(FADE_TIME, function()
