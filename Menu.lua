@@ -1,19 +1,17 @@
 --!strict
 -- CleanMenu.lua
--- HIGGI v2 Menu Shell (No features yet)
--- Reuses existing ToggleSwitches.lua system
+-- HIGGI v2 Clean Layout (2 Column Grid, Fixed Clipping)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local GuiService = game:GetService("GuiService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 ------------------------------------------------------------
--- CONFIG (same color system)
+-- CONFIG
 ------------------------------------------------------------
 
 local CONFIG = {
@@ -63,7 +61,7 @@ local function addStroke(parent, t, c, tr)
 end
 
 ------------------------------------------------------------
--- TOGGLE MODULE LOAD (reuse existing)
+-- LOAD TOGGLE MODULE (reuse existing system)
 ------------------------------------------------------------
 
 local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
@@ -86,7 +84,7 @@ local G = (typeof(getgenv) == "function" and getgenv()) or _G
 G.__HIGGI_TOGGLES_API = Toggles
 
 ------------------------------------------------------------
--- GUI BUILD
+-- BUILD GUI
 ------------------------------------------------------------
 
 local old = playerGui:FindFirstChild(CONFIG.GuiName)
@@ -116,7 +114,7 @@ addCorner(toggleBtn, 22)
 addStroke(toggleBtn, 1, CONFIG.Stroke, 0.25)
 
 ------------------------------------------------------------
--- Popup
+-- Popup Panel
 ------------------------------------------------------------
 
 local popup = make("Frame", {
@@ -176,18 +174,17 @@ local tabBar = make("Frame", {
 	Parent = popup,
 })
 
-local tabLayout = make("UIListLayout", {
+make("UIListLayout", {
 	FillDirection = Enum.FillDirection.Horizontal,
 	Padding = UDim.new(0, 8),
 	Parent = tabBar,
 })
 
 local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
-
 local pages = {}
 
 ------------------------------------------------------------
--- CONTENT AREA (2 COLUMN GRID)
+-- CONTENT AREA (2 COLUMN GRID, FIXED)
 ------------------------------------------------------------
 
 local content = make("Frame", {
@@ -207,8 +204,17 @@ local function makePage(name)
 		Parent = content,
 	})
 
+	-- padding to prevent clipping
+	make("UIPadding", {
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		Parent = page,
+	})
+
 	local grid = make("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -6, 0, 70),
+		CellSize = UDim2.new(0.5, -12, 0, 70),
 		CellPadding = UDim2.new(0, 12, 0, 12),
 		Parent = page,
 	})
@@ -246,7 +252,7 @@ end
 pages["Main"].Visible = true
 
 ------------------------------------------------------------
--- SAMPLE PLACEHOLDER TOGGLES (2 COLUMN DEMO)
+-- DEMO TOGGLES (2 COLUMN TEST)
 ------------------------------------------------------------
 
 local SERVICES = {
@@ -280,7 +286,7 @@ Toggles.AddToggleCard(
 )
 
 ------------------------------------------------------------
--- OPEN / CLOSE LOGIC
+-- OPEN / CLOSE
 ------------------------------------------------------------
 
 toggleBtn.MouseButton1Click:Connect(function()
