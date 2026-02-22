@@ -1,6 +1,6 @@
 --!strict
 -- CleanMenu.lua
--- HIGGI v2 Clean Layout (2 Column Grid, Fixed Clipping)
+-- HIGGI v2 Clean Layout (Centered 2 Column Grid + RGB Toggle)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -18,9 +18,11 @@ local CONFIG = {
 	GuiName = "HiggiCleanGui",
 	ToggleButtonName = "MenuToggleButton",
 
-	PopupSize = Vector2.new(560, 380),
+	PopupSize = Vector2.new(600, 400),
 
 	Accent = Color3.fromRGB(255, 0, 255),
+	BaseAccent = Color3.fromRGB(255, 0, 255),
+
 	Bg = Color3.fromRGB(14, 14, 16),
 	Bg2 = Color3.fromRGB(20, 20, 24),
 	Bg3 = Color3.fromRGB(26, 26, 32),
@@ -61,7 +63,7 @@ local function addStroke(parent, t, c, tr)
 end
 
 ------------------------------------------------------------
--- LOAD TOGGLE MODULE (reuse existing system)
+-- LOAD TOGGLE MODULE
 ------------------------------------------------------------
 
 local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
@@ -73,13 +75,11 @@ local function loadModule(url)
 	if not ok then
 		error(code)
 	end
-
 	local chunk = loadstring(code)
 	return chunk()
 end
 
 local Toggles = loadModule(TOGGLES_URL)
-
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
 G.__HIGGI_TOGGLES_API = Toggles
 
@@ -100,7 +100,7 @@ local screen = make("ScreenGui", {
 })
 
 ------------------------------------------------------------
--- Floating Toggle Button
+-- FLOATING BUTTON
 ------------------------------------------------------------
 
 local toggleBtn = make("ImageButton", {
@@ -114,7 +114,7 @@ addCorner(toggleBtn, 22)
 addStroke(toggleBtn, 1, CONFIG.Stroke, 0.25)
 
 ------------------------------------------------------------
--- Popup Panel
+-- POPUP
 ------------------------------------------------------------
 
 local popup = make("Frame", {
@@ -184,7 +184,7 @@ local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
 local pages = {}
 
 ------------------------------------------------------------
--- CONTENT AREA (2 COLUMN GRID, FIXED)
+-- CONTENT AREA
 ------------------------------------------------------------
 
 local content = make("Frame", {
@@ -195,6 +195,7 @@ local content = make("Frame", {
 })
 
 local function makePage(name)
+
 	local page = make("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		CanvasSize = UDim2.new(0,0,0,0),
@@ -204,18 +205,22 @@ local function makePage(name)
 		Parent = content,
 	})
 
-	-- padding to prevent clipping
 	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 6),
-		PaddingRight = UDim.new(0, 6),
-		PaddingTop = UDim.new(0, 6),
-		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		PaddingTop = UDim.new(0, 12),
+		PaddingBottom = UDim.new(0, 12),
 		Parent = page,
 	})
 
+	local CARD_WIDTH = 260
+	local CARD_HEIGHT = 76
+	local GAP = 16
+
 	local grid = make("UIGridLayout", {
-		CellSize = UDim2.new(0.5, -12, 0, 70),
-		CellPadding = UDim2.new(0, 12, 0, 12),
+		CellSize = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
+		CellPadding = UDim2.fromOffset(GAP, GAP),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Parent = page,
 	})
 
@@ -233,7 +238,7 @@ for _,name in ipairs(tabs) do
 		Text = name,
 		Font = Enum.Font.GothamSemibold,
 		TextSize = 14,
-		Size = UDim2.fromOffset(100, 34),
+		Size = UDim2.fromOffset(110, 34),
 		BackgroundColor3 = CONFIG.Bg2,
 		TextColor3 = CONFIG.Text,
 		Parent = tabBar,
@@ -252,7 +257,7 @@ end
 pages["Main"].Visible = true
 
 ------------------------------------------------------------
--- DEMO TOGGLES (2 COLUMN TEST)
+-- DEMO TOGGLES
 ------------------------------------------------------------
 
 local SERVICES = {
@@ -263,7 +268,7 @@ local SERVICES = {
 
 Toggles.AddToggleCard(
 	pages["Main"],
-	"example_toggle_1",
+	"aimbot",
 	"Aimbot",
 	"Placeholder toggle card.",
 	1,
@@ -275,8 +280,8 @@ Toggles.AddToggleCard(
 
 Toggles.AddToggleCard(
 	pages["Main"],
-	"example_toggle_2",
-	"Esp",
+	"esp",
+	"ESP",
 	"Second placeholder.",
 	2,
 	false,
@@ -286,7 +291,23 @@ Toggles.AddToggleCard(
 )
 
 ------------------------------------------------------------
--- OPEN / CLOSE
+-- RGB TOGGLE (Settings Tab)
+------------------------------------------------------------
+
+Toggles.AddToggleCard(
+	pages["Settings"],
+	"settings_rgb_accent",
+	"RGB Accent",
+	"Animate accent color.",
+	1,
+	false,
+	CONFIG,
+	SERVICES,
+	nil
+)
+
+------------------------------------------------------------
+-- OPEN/CLOSE
 ------------------------------------------------------------
 
 toggleBtn.MouseButton1Click:Connect(function()
@@ -298,13 +319,17 @@ close.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------------------
--- RGB ACCENT SYSTEM
+-- RGB SYSTEM
 ------------------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
+
 	if Toggles.GetState("settings_rgb_accent", false) then
-		local t = tick() * 0.8
+		local t = tick() * 0.5
 		CONFIG.Accent = Color3.fromHSV((t % 5)/5, 1, 1)
+	else
+		CONFIG.Accent = CONFIG.BaseAccent
 	end
+
 	title.TextColor3 = CONFIG.Accent
 end)
