@@ -410,9 +410,9 @@ local function buildGlow(plr: Player)
 	local h = Instance.new("Highlight")
 	h.Name = GLOW_TAG
 	h.FillColor = getESPColor(plr)
-	h.FillTransparency = 0.7
+	h.FillTransparency = 0
 	h.OutlineColor = Color3.fromRGB(255, 255, 255)
-	h.OutlineTransparency = 0.1
+	h.OutlineTransparency = 1
 	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	h.Parent = char
 end
