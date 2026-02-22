@@ -93,6 +93,7 @@ local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/
 local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Rage.lua"
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/FastMode.lua"
+local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/EmulatorBypass.lua"
 
 local function loadModule(url)
 	local code = game:HttpGet(url)
@@ -745,6 +746,22 @@ Toggles.AddToggleCard(
 	false,
 	CONFIG,
 	SERVICES
+)
+
+Toggles.AddToggleCard(
+	pages["Settings"].Right,
+	"settings_emulator_bypass",
+	"Emulator Bypass",
+	"Block keyboard and mouse when touch is detected.",
+	2,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("settings_emulator_bypass", EMULATOR_BYPASS_URL)
+		end
+	end
 )
 ------------------------------------------------------------
 -- RGB ACCENT SYSTEM (PROPER SUBSCRIBE VERSION)
