@@ -1,6 +1,6 @@
 --!strict
 -- CleanMenu.lua
--- HIGGI v2 Polished Layout (Correct Grid Width)
+-- HIGGI v2 Polished Layout (Stable Grouped Version)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -68,6 +68,15 @@ end
 
 local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
 
+local SKY_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/ClientSky.lua"
+local FULLBRIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Fullbright.lua"
+local NOFOG_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/NoFog.lua"
+local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/AdminESP.lua"
+local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Flight.lua"
+local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/PlayerSpeed.lua"
+local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Rage.lua"
+local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/Weather.lua"
+
 local function loadModule(url)
 	local code = game:HttpGet(url)
 	return loadstring(code)()
@@ -76,6 +85,53 @@ end
 local Toggles = loadModule(TOGGLES_URL)
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
 G.__HIGGI_TOGGLES_API = Toggles
+
+
+------------------------------------------------------------
+-- SERVICES TABLE (REQUIRED FOR TOGGLE MODULE)
+------------------------------------------------------------
+
+local SERVICES = {
+	TweenService = TweenService,
+	UserInputService = UserInputService,
+	Overlay = screen, -- optional but good for dropdown layering
+}
+
+
+------------------------------------------------------------
+-- LAZY FEATURE LOADER
+------------------------------------------------------------
+
+local featureLoaded: {[string]: boolean} = {}
+
+local function runRemote(url: string)
+	local ok, code = pcall(function()
+		return game:HttpGet(url)
+	end)
+	if not ok then
+		warn("HttpGet failed:", code)
+		return
+	end
+
+	local fn, compileErr = loadstring(code)
+	if not fn then
+		warn("Compile failed:", compileErr)
+		return
+	end
+
+	local ok2, runErr = pcall(fn)
+	if not ok2 then
+		warn("Runtime error:", runErr)
+	end
+end
+
+local function ensureFeatureLoaded(key: string, url: string)
+	if featureLoaded[key] then
+		return
+	end
+	featureLoaded[key] = true
+	runRemote(url)
+end
 
 ------------------------------------------------------------
 -- BUILD GUI
@@ -106,39 +162,53 @@ addCorner(toggleBtn, 22)
 addStroke(toggleBtn, 1, CONFIG.Stroke, 0.25)
 
 ------------------------------------------------------------
--- POPUP
-------------------------------------------------------------
-
-local popup = make("Frame", {
-	Size = UDim2.fromOffset(CONFIG.PopupSize.X, CONFIG.PopupSize.Y),
-	Position = UDim2.fromScale(0.5, 0.5),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundColor3 = CONFIG.Bg,
-	Visible = false,
-	Parent = screen,
-})
-
-
-addCorner(popup, 16)
-addStroke(popup, 1, CONFIG.Stroke, 0.2)
-
-------------------------------------------------------------
--- AVATAR PREVIEW PANEL (RIGHT SIDE OF MENU)
+-- GROUP CONTAINER (CENTERED)
 ------------------------------------------------------------
 
 local PREVIEW_WIDTH = 220
 local PREVIEW_GAP = 16
 
+local GROUP_WIDTH = CONFIG.PopupSize.X + PREVIEW_GAP + PREVIEW_WIDTH
+local GROUP_HEIGHT = CONFIG.PopupSize.Y
+
+local popupGroup = make("Frame", {
+	Size = UDim2.fromOffset(GROUP_WIDTH, GROUP_HEIGHT),
+	Position = UDim2.fromScale(0.5, 0.5),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundTransparency = 1,
+	Visible = false,
+	Parent = screen,
+})
+
+------------------------------------------------------------
+-- MAIN MENU PANEL
+------------------------------------------------------------
+
+local popup = make("Frame", {
+	Size = UDim2.fromOffset(CONFIG.PopupSize.X, CONFIG.PopupSize.Y),
+	Position = UDim2.fromOffset(0, 0),
+	BackgroundColor3 = CONFIG.Bg,
+	Parent = popupGroup,
+})
+addCorner(popup, 16)
+addStroke(popup, 1, CONFIG.Stroke, 0.2)
+
+------------------------------------------------------------
+-- PREVIEW PANEL
+------------------------------------------------------------
+
 local previewPanel = make("Frame", {
 	Size = UDim2.fromOffset(PREVIEW_WIDTH, CONFIG.PopupSize.Y),
-	Position = UDim2.new(1, PREVIEW_GAP, 0, 0),
-	AnchorPoint = Vector2.new(0, 0),
+	Position = UDim2.fromOffset(CONFIG.PopupSize.X + PREVIEW_GAP, 0),
 	BackgroundColor3 = CONFIG.Bg,
-	Visible = false,
-	Parent = popup,
+	Parent = popupGroup,
 })
 addCorner(previewPanel, 16)
 addStroke(previewPanel, 1, CONFIG.Stroke, 0.2)
+
+------------------------------------------------------------
+-- VIEWPORT SETUP
+------------------------------------------------------------
 
 local viewport = make("ViewportFrame", {
 	Size = UDim2.new(1, -16, 1, -16),
@@ -187,11 +257,12 @@ local close = make("TextButton", {
 	Size = UDim2.fromOffset(32, 28),
 	Position = UDim2.new(1, -42, 0, 8),
 	BackgroundColor3 = CONFIG.Bg2,
-		TextColor3 = CONFIG.Text,
+	TextColor3 = CONFIG.Text,
 	Parent = header,
 })
 addCorner(close, 8)
 addStroke(close, 1, CONFIG.Stroke, 0.25)
+
 
 ------------------------------------------------------------
 -- TAB BAR (CENTERED)
@@ -220,7 +291,7 @@ make("UIListLayout", {
 	Parent = tabBar,
 })
 
--- Divider ABOVE tabs (correct position)
+-- Divider above tabs
 make("Frame", {
 	Size = UDim2.new(1, -24, 0, 1),
 	Position = UDim2.new(0, 12, 0, 44),
@@ -229,11 +300,6 @@ make("Frame", {
 	BorderSizePixel = 0,
 	Parent = popup,
 })
-
-local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
-local pages = {}
-local tabButtons = {}
-local currentTab = "Main"
 
 ------------------------------------------------------------
 -- CONTENT AREA
@@ -246,8 +312,7 @@ local content = make("Frame", {
 	Parent = popup,
 })
 
-local function makePage(name)
-
+local function makePage()
 	local page = make("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		CanvasSize = UDim2.new(0,0,0,0),
@@ -263,7 +328,6 @@ local function makePage(name)
 		Parent = page,
 	})
 
-	-- PERFECT WIDTH FOR 16PX SYMMETRY
 	local CARD_WIDTH = 276
 	local CARD_HEIGHT = 76
 	local GAP = 16
@@ -286,14 +350,19 @@ end
 -- CREATE TABS
 ------------------------------------------------------------
 
+local tabs = { "Main", "Visuals", "World", "Misc", "Settings" }
+local pages = {}
+local tabButtons = {}
+local currentTab = "Main"
+
 for _,name in ipairs(tabs) do
-	pages[name] = makePage(name)
+	pages[name] = makePage()
 
 	local btn = make("TextButton", {
 		Text = name,
 		Font = Enum.Font.GothamSemibold,
 		TextSize = 14,
-		Size = UDim2.fromOffset(110, 34),
+		Size = UDim2.fromOffset(TAB_WIDTH, 34),
 		BackgroundColor3 = CONFIG.Bg2,
 		TextColor3 = CONFIG.Text,
 		Parent = tabBar,
@@ -317,18 +386,180 @@ pages["Main"].Visible = true
 -- DEMO TOGGLES
 ------------------------------------------------------------
 
-local SERVICES = {
-	TweenService = TweenService,
-	UserInputService = UserInputService,
-	Overlay = screen,
-}
+Toggles.AddToggleCard(
+	pages["Main"],
+	"combat_rage",
+	"Rage Aimbot",
+	"Auto-aim at nearest enemy inside FOV.",
+	1,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("combat_rage", RAGE_URL)
+		end
+	end
+)
 
-Toggles.AddToggleCard(pages["Main"], "aimbot", "Aimbot", "Placeholder toggle card.", 1, false, CONFIG, SERVICES, nil)
-Toggles.AddToggleCard(pages["Main"], "esp", "ESP", "Second placeholder.", 2, false, CONFIG, SERVICES, nil)
-Toggles.AddToggleCard(pages["Settings"], "settings_rgb_accent", "RGB Accent", "Animate accent color.", 1, false, CONFIG, SERVICES, nil)
+Toggles.AddSliderCard(
+	pages["Main"],
+	"combat_rage_fov",
+	"Aim FOV",
+	nil,
+	2,
+	20,
+	400,
+	120,
+	5,
+	CONFIG,
+	SERVICES
+)
+
+Toggles.AddSliderCard(
+	pages["Main"],
+	"combat_rage_smooth",
+	"Smooth",
+	nil,
+	3,
+	0,
+	1,
+	0.18,
+	0.01,
+	CONFIG,
+	SERVICES
+)
+
+Toggles.AddToggleCard(pages["Visuals"], "visuals_name", "Name ESP", "Show player names.", 1, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
+
+Toggles.AddToggleCard(pages["Visuals"], "visuals_health", "Health ESP", "Show player health.", 2, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
+
+Toggles.AddToggleCard(pages["Visuals"], "visuals_box3d", "Boxes", "3D wireframe boxes.", 3, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("adminesp", ADMINESP_URL) end
+end)
+
+Toggles.AddToggleCard(pages["World"], "world_fullbright", "Fullbright", "Force max brightness.", 1, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("world_fullbright", FULLBRIGHT_URL) end
+end)
+
+Toggles.AddToggleCard(pages["World"], "world_nofog", "No Fog", "Reduce fog.", 2, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("world_nofog", NOFOG_URL) end
+end)
+
+Toggles.AddToggleCard(pages["World"], "world_weather", "Weather FX", "Client-side snow.", 3, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("world_weather", WEATHER_URL) end
+end)
+
+Toggles.AddToggleCard(pages["Misc"], "world_flight", "Flight", "Free noclip flight.", 1, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("world_flight", FLIGHT_URL) end
+end)
+
+Toggles.AddToggleCard(pages["Misc"], "misc_speed", "Speed Boost", "Increase WalkSpeed.", 2, false, CONFIG, SERVICES, function(state)
+	if state then ensureFeatureLoaded("misc_speed", SPEED_URL) end
+end)
 
 ------------------------------------------------------------
--- BUILD AVATAR PREVIEW
+-- RGB ACCENT SYSTEM (PROPER SUBSCRIBE VERSION)
+------------------------------------------------------------
+
+local DEFAULT_ACCENT = CONFIG.BaseAccent
+local rgbConnection: RBXScriptConnection? = nil
+local hue = 0
+
+local function repaintAccent()
+	title.TextColor3 = CONFIG.Accent
+
+	for name,btn in pairs(tabButtons) do
+		if name == currentTab then
+			btn.BackgroundColor3 = CONFIG.Accent
+			btn.TextColor3 = Color3.fromRGB(0,0,0)
+		else
+			btn.BackgroundColor3 = CONFIG.Bg2
+			btn.TextColor3 = CONFIG.Text
+		end
+	end
+end
+
+local function startRGB()
+	if rgbConnection then return end
+
+	rgbConnection = RunService.RenderStepped:Connect(function(dt)
+		hue += dt * 0.2
+		if hue > 1 then hue -= 1 end
+		CONFIG.Accent = Color3.fromHSV(hue,1,1)
+		repaintAccent()
+	end)
+end
+
+local function stopRGB()
+	if rgbConnection then
+		rgbConnection:Disconnect()
+		rgbConnection = nil
+	end
+	CONFIG.Accent = DEFAULT_ACCENT
+	repaintAccent()
+end
+
+Toggles.Subscribe("settings_rgb_accent", function(state)
+	if state then
+		startRGB()
+	else
+		stopRGB()
+	end
+end)
+------------------------------------------------------------
+-- DRAG GROUP
+------------------------------------------------------------
+
+local dragging = false
+local dragStart = Vector2.zero
+local startPos = UDim2.new()
+
+local function beginDrag(input)
+	dragging = true
+	dragStart = input.Position
+	startPos = popupGroup.Position
+end
+
+local function updateDrag(input)
+	if not dragging then return end
+	local delta = input.Position - dragStart
+
+	popupGroup.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		beginDrag(input)
+	end
+end)
+
+header.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch then
+		updateDrag(input)
+	end
+end)
+
+------------------------------------------------------------
+-- BUILD AVATAR
 ------------------------------------------------------------
 
 local preview: Model? = nil
@@ -373,22 +604,21 @@ RunService.RenderStepped:Connect(function()
 	local fov = math.rad(cam.FieldOfView)
 	local distance = (maxDim / (2 * math.tan(fov / 2))) * 1.25
 
-	local cameraPosition = center + Vector3.new(0, 0, distance)
-	cam.CFrame = CFrame.new(cameraPosition, center)
+	cam.CFrame = CFrame.new(center + Vector3.new(0,0,distance), center)
 end)
 
 ------------------------------------------------------------
--- DRAG ROTATION
+-- ROTATE PREVIEW
 ------------------------------------------------------------
 
-local dragging = false
+local draggingPreview = false
 local lastX = 0
 local speed = 0.45
 
 viewport.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
+		draggingPreview = true
 		lastX = input.Position.X
 	end
 end)
@@ -396,12 +626,12 @@ end)
 viewport.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
+		draggingPreview = false
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if not dragging then return end
+	if not draggingPreview then return end
 	if input.UserInputType == Enum.UserInputType.MouseMovement
 	or input.UserInputType == Enum.UserInputType.Touch then
 		local delta = input.Position.X - lastX
@@ -411,44 +641,13 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 ------------------------------------------------------------
--- OPEN/CLOSE
+-- OPEN / CLOSE
 ------------------------------------------------------------
 
-local function setMenuVisible(state)
-	popup.Visible = state
-	previewPanel.Visible = state
-end
-
 toggleBtn.MouseButton1Click:Connect(function()
-	setMenuVisible(not popup.Visible)
+	popupGroup.Visible = not popupGroup.Visible
 end)
 
 close.MouseButton1Click:Connect(function()
-	setMenuVisible(false)
-end)
-
-------------------------------------------------------------
--- RGB + ACTIVE TAB
-------------------------------------------------------------
-
-RunService.RenderStepped:Connect(function()
-
-	if Toggles.GetState("settings_rgb_accent", false) then
-		local t = tick() * 0.5
-		CONFIG.Accent = Color3.fromHSV((t % 5)/5, 1, 1)
-	else
-		CONFIG.Accent = CONFIG.BaseAccent
-	end
-
-	title.TextColor3 = CONFIG.Accent
-
-	for name,btn in pairs(tabButtons) do
-		if name == currentTab then
-			btn.BackgroundColor3 = CONFIG.Accent
-			btn.TextColor3 = Color3.fromRGB(0,0,0)
-		else
-			btn.BackgroundColor3 = CONFIG.Bg2
-			btn.TextColor3 = CONFIG.Text
-		end
-	end
+	popupGroup.Visible = false
 end)
