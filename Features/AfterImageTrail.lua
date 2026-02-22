@@ -25,7 +25,7 @@ local G = getGlobal()
 ------------------------------------------------------------
 
 local TRAIL_INTERVAL = 0.028
-local FADE_TIME = 0.38
+local FADE_TIME = 0.6
 local START_TRANSPARENCY = 0.18
 
 local HUE_STEP = 0.015
