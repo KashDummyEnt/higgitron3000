@@ -609,7 +609,7 @@ Toggles.AddToggleCard(pages["Misc"].Right, "misc_speed", "Speed Boost", "Increas
 	if state then ensureFeatureLoaded("misc_speed", SPEED_URL) end
 end)
 
-Toggles.AddToggleCard(pages["Misc"].Right, "misc_local_gravity", "Low Gravity", "Reduce client gravity.", 3, false, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["Misc"].Left, "misc_local_gravity", "Low Gravity", "Reduce client gravity.", 3, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("misc_local_gravity", LOCAL_GRAVITY_URL) end
 end)
 
@@ -618,7 +618,7 @@ Toggles.AddToggleCard(
 	"misc_afterimage",
 	"After Image Trail",
 	"Sandevistan-style time echo trail.",
-	5,
+	4,
 	false,
 	CONFIG,
 	SERVICES,
