@@ -31,6 +31,22 @@ local CONFIG = {
 	Stroke = Color3.fromRGB(55, 55, 65),
 }
 
+
+------------------------------------------------------------
+-- ACCENT SUBSCRIBE SYSTEM (MUST BE ABOVE SERVICES)
+------------------------------------------------------------
+
+local accentListeners = {}
+
+local function subscribeAccent(fn)
+	table.insert(accentListeners, fn)
+end
+
+local function fireAccentChanged()
+	for _, fn in ipairs(accentListeners) do
+		fn(CONFIG.Accent)
+	end
+end
 ------------------------------------------------------------
 -- UTIL
 ------------------------------------------------------------
@@ -717,18 +733,6 @@ Toggles.AddToggleCard(
 local DEFAULT_ACCENT = CONFIG.BaseAccent
 local rgbConnection: RBXScriptConnection? = nil
 local hue = 0
-
-local accentListeners = {}
-
-local function subscribeAccent(fn)
-	table.insert(accentListeners, fn)
-end
-
-local function fireAccentChanged()
-	for _, fn in ipairs(accentListeners) do
-		fn(CONFIG.Accent)
-	end
-end
 
 local function repaintAccent()
 	title.TextColor3 = CONFIG.Accent
