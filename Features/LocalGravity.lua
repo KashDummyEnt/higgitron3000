@@ -67,8 +67,15 @@ local enabled = false
 local function setupCharacter(character: Model)
 	local root = character:WaitForChild("HumanoidRootPart") :: BasePart
 
-	if gravityForce then gravityForce:Destroy() end
-	if attachment then attachment:Destroy() end
+	if gravityForce then
+		gravityForce:Destroy()
+		gravityForce = nil
+	end
+
+	if attachment then
+		attachment:Destroy()
+		attachment = nil
+	end
 
 	attachment = Instance.new("Attachment")
 	attachment.Parent = root
@@ -97,7 +104,6 @@ RunService.Heartbeat:Connect(function()
 
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then return end
-
 	if not gravityForce then return end
 
 	local mass = root.AssemblyMass
@@ -108,15 +114,29 @@ RunService.Heartbeat:Connect(function()
 end)
 
 ------------------------------------------------------------
+-- ENABLE / DISABLE
+------------------------------------------------------------
+
+local function setEnabled(state: boolean)
+	enabled = state
+
+	if enabled then
+		if player.Character then
+			setupCharacter(player.Character)
+		end
+	else
+		if gravityForce then
+			gravityForce.Force = Vector3.zero
+		end
+	end
+end
+
+------------------------------------------------------------
 -- TOGGLE LISTENER
 ------------------------------------------------------------
 
 Toggles.Subscribe(TOGGLE_KEY, function(state: boolean)
-	enabled = state
-
-	if enabled and player.Character then
-		setupCharacter(player.Character)
-	end
+	setEnabled(state)
 end)
 
 player.CharacterAdded:Connect(function(char)
@@ -124,3 +144,9 @@ player.CharacterAdded:Connect(function(char)
 		setupCharacter(char)
 	end
 end)
+
+------------------------------------------------------------
+-- APPLY CURRENT STATE ON LOAD
+------------------------------------------------------------
+
+setEnabled(Toggles.GetState(TOGGLE_KEY, false))
