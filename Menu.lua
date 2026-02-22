@@ -145,6 +145,7 @@ local SERVICES = {
 	TweenService = TweenService,
 	UserInputService = UserInputService,
 	Overlay = screen,
+	SubscribeAccent = subscribeAccent,
 }
 
 ------------------------------------------------------------
@@ -717,6 +718,18 @@ local DEFAULT_ACCENT = CONFIG.BaseAccent
 local rgbConnection: RBXScriptConnection? = nil
 local hue = 0
 
+local accentListeners = {}
+
+local function subscribeAccent(fn)
+	table.insert(accentListeners, fn)
+end
+
+local function fireAccentChanged()
+	for _, fn in ipairs(accentListeners) do
+		fn(CONFIG.Accent)
+	end
+end
+
 local function repaintAccent()
 	title.TextColor3 = CONFIG.Accent
 
@@ -739,6 +752,7 @@ local function startRGB()
 		if hue > 1 then hue -= 1 end
 		CONFIG.Accent = Color3.fromHSV(hue,1,1)
 		repaintAccent()
+		fireAccentChanged()
 	end)
 end
 
@@ -749,6 +763,7 @@ local function stopRGB()
 	end
 	CONFIG.Accent = DEFAULT_ACCENT
 	repaintAccent()
+	fireAccentChanged()
 end
 
 Toggles.Subscribe("settings_rgb_accent", function(state)
