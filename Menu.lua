@@ -84,18 +84,18 @@ end
 
 local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
 
-local SKY_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ClientSky.lua"
-local FULLBRIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Fullbright.lua"
-local NOFOG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/NoFog.lua"
-local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/AdminESP.lua"
-local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Flight.lua"
-local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/PlayerSpeed.lua"
-local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Rage.lua"
-local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Weather.lua"
-local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/FastMode.lua"
-local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/EmulatorBypass.lua"
-local PREVIEW_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Preview.lua"
-local DRAG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/DragController.lua"
+local SKY_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/ClientSky.lua"
+local FULLBRIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Fullbright.lua"
+local NOFOG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/NoFog.lua"
+local ADMINESP_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/AdminESP.lua"
+local FLIGHT_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Flight.lua"
+local SPEED_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/PlayerSpeed.lua"
+local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Rage.lua"
+local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
+local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
+local EMULATOR_BYPASS_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/EmulatorBypass.lua"
+local PREVIEW_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menu/Preview.lua"
+local DRAG_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Menuy/DragController.lua"
 
 
 local function loadModule(url)
