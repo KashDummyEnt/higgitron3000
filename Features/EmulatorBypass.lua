@@ -1,11 +1,17 @@
 --!strict
 -- EmulatorBypass.lua
--- Blocks KBM when touch is detected (mobile + emulator)
+-- Frame-enforced KBM block for mobile/emulator
 
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
+local RunService = game:GetService("RunService")
 
 local G = (typeof(getgenv) == "function" and getgenv()) or _G
+
+------------------------------------------------------------
+-- WAIT FOR TOGGLE API
+------------------------------------------------------------
+
 local function waitForTogglesApi(timeout: number): any?
 	local start = os.clock()
 	while os.clock() - start < timeout do
@@ -30,6 +36,7 @@ end
 -- STATE
 ------------------------------------------------------------
 
+local enabled = false
 local blocked = false
 local bindings = {}
 
@@ -77,7 +84,7 @@ local function applyBlock()
 		table.insert(bindings, name)
 	end
 
-	-- Mouse buttons + movement
+	-- Mouse
 	local mouseTypes = {
 		Enum.UserInputType.MouseButton1,
 		Enum.UserInputType.MouseButton2,
@@ -120,18 +127,38 @@ local function removeBlock()
 end
 
 ------------------------------------------------------------
+-- FRAME ENFORCEMENT
+------------------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+
+	if not enabled then
+		if blocked then
+			removeBlock()
+		end
+		return
+	end
+
+	-- Enabled state
+	if isTouchEnvironment() then
+		if not blocked then
+			applyBlock()
+		end
+	else
+		if blocked then
+			removeBlock()
+		end
+	end
+
+end)
+
+------------------------------------------------------------
 -- TOGGLE LISTENER
 ------------------------------------------------------------
 
-Toggles.Subscribe("settings_emulator_bypass", function(state)
-	if state then
-		applyBlock()
-	else
-		removeBlock()
-	end
+Toggles.Subscribe("settings_emulator_bypass", function(state: boolean)
+	enabled = state
 end)
 
--- Apply immediately if already enabled
-if Toggles.GetState("settings_emulator_bypass") then
-	applyBlock()
-end
+-- Sync initial state
+enabled = Toggles.GetState("settings_emulator_bypass", false)
