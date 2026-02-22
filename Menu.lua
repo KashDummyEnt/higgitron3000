@@ -161,7 +161,7 @@ addStroke(close, 1, CONFIG.Stroke, 0.25)
 
 local tabBar = make("Frame", {
 	Size = UDim2.new(1, -24, 0, 40),
-	Position = UDim2.new(0, 12, 0, 44),
+	Position = UDim2.new(0, 12, 0, 52),
 	BackgroundTransparency = 1,
 	Parent = popup,
 })
