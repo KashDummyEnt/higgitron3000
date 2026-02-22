@@ -34,7 +34,7 @@ local CONFIG = {
 ----------------------------------------------------------------
 -- LOAD TOGGLE MODULE (UNCHANGED)
 ----------------------------------------------------------------
-local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/roblox-game/refs/heads/main/ToggleSwitches.lua"
+local TOGGLES_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/ToggleSwitches.lua"
 
 local function loadModule(url: string)
 	local ok, code = pcall(function()
