@@ -1,6 +1,6 @@
 --!strict
 -- Freecam.lua
--- Stable Heartbeat Freecam (No Snap + Fast Rotation)
+-- Stable Mobile + KBM Freecam (No Snapping)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
-local cam = workspace.CurrentCamera
+local Camera = workspace.CurrentCamera
 
 ------------------------------------------------------------------
 -- TOGGLE API
@@ -46,16 +46,15 @@ end
 
 local KEY = "misc_freecam"
 
-local BASE_SPEED = 100
+local BASE_SPEED = 90
 local BOOST_MULT = 2
-local ACCEL = 14
+local ACCEL = 12
 local DECEL = 16
-
-local TURN_SENS_MOUSE = 0.004
-local TURN_SENS_TOUCH = 0.005
+local LOOK_SENS_MOUSE = 0.0025
+local LOOK_SENS_TOUCH = 0.003
 
 ------------------------------------------------------------------
--- SAFETY
+-- SAFETY (prevent stacking)
 ------------------------------------------------------------------
 
 if G.__HIGGI_FREECAM and G.__HIGGI_FREECAM.Cleanup then
@@ -74,13 +73,13 @@ local boosting = false
 local moveUp = false
 local moveDown = false
 
-local camPos = Vector3.zero
-local yaw = 0
+local currentVelocity = Vector3.zero
+local cameraPosition = Vector3.zero
+
 local pitch = 0
+local yaw = 0
 
-local currentVel = Vector3.zero
-
-local hbConn: RBXScriptConnection? = nil
+local renderConn: RBXScriptConnection? = nil
 local inputConn: RBXScriptConnection? = nil
 
 local Controls = nil
@@ -106,7 +105,6 @@ end
 ------------------------------------------------------------------
 
 local function bindVertical()
-
 	ContextActionService:BindAction("FreecamUp", function(_, state)
 		moveUp = (state == Enum.UserInputState.Begin or state == Enum.UserInputState.Change)
 		return Enum.ContextActionResult.Sink
@@ -121,7 +119,6 @@ local function bindVertical()
 		boosting = (state == Enum.UserInputState.Begin or state == Enum.UserInputState.Change)
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.LeftShift)
-
 end
 
 local function unbindVertical()
@@ -138,19 +135,19 @@ end
 ------------------------------------------------------------------
 
 local function stopFreecam()
-
 	if not running then return end
 	running = false
 
-	if hbConn then hbConn:Disconnect() hbConn = nil end
+	if renderConn then renderConn:Disconnect() renderConn = nil end
 	if inputConn then inputConn:Disconnect() inputConn = nil end
 
 	unbindVertical()
 
-	cam.CameraType = Enum.CameraType.Custom
+	Camera.CameraType = Enum.CameraType.Custom
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	UserInputService.MouseIconEnabled = true
 
+	-- restore character
 	local char = LocalPlayer.Character
 	if char then
 		local hum = char:FindFirstChildOfClass("Humanoid")
@@ -165,7 +162,7 @@ local function stopFreecam()
 		Controls:Enable()
 	end
 
-	currentVel = Vector3.zero
+	currentVelocity = Vector3.zero
 end
 
 ------------------------------------------------------------------
@@ -173,7 +170,6 @@ end
 ------------------------------------------------------------------
 
 local function startFreecam()
-
 	if running then return end
 	running = true
 
@@ -183,6 +179,7 @@ local function startFreecam()
 		if hum then
 			originalWalkSpeed = hum.WalkSpeed
 			originalJumpPower = hum.JumpPower
+
 			hum.WalkSpeed = 0
 			hum.JumpPower = 0
 			hum.AutoRotate = false
@@ -193,13 +190,13 @@ local function startFreecam()
 		Controls:Disable()
 	end
 
-	cam.CameraType = Enum.CameraType.Scriptable
+	Camera.CameraType = Enum.CameraType.Scriptable
 
-	camPos = cam.CFrame.Position
+	cameraPosition = Camera.CFrame.Position
 
-	local look = cam.CFrame.LookVector
-	yaw = math.atan2(-look.X, -look.Z)
-	pitch = math.asin(look.Y)
+	local _, y, x = Camera.CFrame:ToOrientation()
+	pitch = x
+	yaw = y
 
 	bindVertical()
 
@@ -207,55 +204,52 @@ local function startFreecam()
 	UserInputService.MouseIconEnabled = false
 
 	inputConn = UserInputService.InputChanged:Connect(function(input)
-
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			yaw -= input.Delta.X * TURN_SENS_MOUSE
-			pitch -= input.Delta.Y * TURN_SENS_MOUSE
+			yaw -= input.Delta.X * LOOK_SENS_MOUSE
+			pitch -= input.Delta.Y * LOOK_SENS_MOUSE
 		end
 
 		if input.UserInputType == Enum.UserInputType.Touch then
-			yaw -= input.Delta.X * TURN_SENS_TOUCH
-			pitch -= input.Delta.Y * TURN_SENS_TOUCH
+			yaw -= input.Delta.X * LOOK_SENS_TOUCH
+			pitch -= input.Delta.Y * LOOK_SENS_TOUCH
 		end
 
 		pitch = math.clamp(pitch, -1.5, 1.5)
-
 	end)
 
-	hbConn = RunService.Heartbeat:Connect(function(dt)
+	renderConn = RunService.RenderStepped:Connect(function(dt)
 
-		local mv = Vector3.zero
+		local moveVec = Vector3.zero
+
 		if Controls and Controls.GetMoveVector then
 			local raw = Controls:GetMoveVector()
-			mv = Vector3.new(raw.X, 0, -raw.Z)
+			moveVec = Vector3.new(raw.X, 0, -raw.Z)
 		end
 
-		local yMove = 0
-		if moveUp then yMove += 1 end
-		if moveDown then yMove -= 1 end
+		local vertical = 0
+		if moveUp then vertical += 1 end
+		if moveDown then vertical -= 1 end
 
 		local rotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
 
 		local forward = rotation.LookVector
 		local right = rotation.RightVector
 
-		local desired = (right * mv.X + forward * mv.Z)
-		if desired.Magnitude > 1 then
-			desired = desired.Unit
+		local desiredDir = (right * moveVec.X + forward * moveVec.Z)
+		if desiredDir.Magnitude > 1 then
+			desiredDir = desiredDir.Unit
 		end
 
 		local speed = BASE_SPEED * (boosting and BOOST_MULT or 1)
-		local targetVel = (desired * speed) + Vector3.new(0, yMove * speed, 0)
+		local targetVelocity = (desiredDir * speed) + Vector3.new(0, vertical * speed, 0)
 
-		local rate = (targetVel.Magnitude > currentVel.Magnitude) and ACCEL or DECEL
-		local alpha = math.clamp(rate * dt, 0, 1)
-		currentVel = currentVel:Lerp(targetVel, alpha)
+		local lerpRate = (targetVelocity.Magnitude > currentVelocity.Magnitude) and ACCEL or DECEL
+		currentVelocity = currentVelocity:Lerp(targetVelocity, math.clamp(lerpRate * dt, 0, 1))
 
-		camPos += currentVel * dt
-		cam.CFrame = CFrame.new(camPos) * rotation
+		cameraPosition += currentVelocity * dt
 
+		Camera.CFrame = CFrame.new(cameraPosition) * rotation
 	end)
-
 end
 
 ------------------------------------------------------------------
@@ -273,6 +267,10 @@ end)
 if Toggles.GetState(KEY, false) then
 	startFreecam()
 end
+
+------------------------------------------------------------------
+-- CLEANUP
+------------------------------------------------------------------
 
 State.Cleanup = function()
 	stopFreecam()
