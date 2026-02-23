@@ -99,7 +99,7 @@ local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/r
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
 local AFTERIMAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/AfterImageTrail.lua"
-
+local FREECAM_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Freecam.lua"
 
 
 local function loadModule(url)
@@ -648,6 +648,22 @@ Toggles.AddToggleCard(
 	function(state)
 		if state then
 			ensureFeatureLoaded("misc_afterimage", AFTERIMAGE_URL)
+		end
+	end
+)
+
+Toggles.AddToggleCard(
+	pages["Misc"].Left,
+	"misc_freecam",
+	"Freecam",
+	"Detach camera and fly freely.",
+	5,
+	false,
+	CONFIG,
+	SERVICES,
+	function(state)
+		if state then
+			ensureFeatureLoaded("misc_freecam", FREECAM_URL)
 		end
 	end
 )
