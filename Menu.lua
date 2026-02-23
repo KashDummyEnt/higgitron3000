@@ -656,9 +656,9 @@ Toggles.AddToggleCard(
 -- SETTINGS TAB
 ------------------------------------------------------------
 
-Toggles.AddToggleCard(pages["Settings"].Left, "settings_rgb_accent", "RGB Accent", "Cycle accent color dynamically.", 1, true, CONFIG, SERVICES)
+Toggles.AddToggleCard(pages["Settings"].Left, "settings_rgb_accent", "RGB Accent", "Cycle accent color dynamically.", 1, false, CONFIG, SERVICES)
 
-Toggles.AddToggleCard(pages["Settings"].Right, "settings_emulator_bypass", "Emulator Bypass", "Bypasses Emulator Detections.", 2, true, CONFIG, SERVICES, function(state)
+Toggles.AddToggleCard(pages["Settings"].Right, "settings_emulator_bypass", "Emulator Bypass", "Bypasses Emulator Detections.", 2, false, CONFIG, SERVICES, function(state)
 	if state then ensureFeatureLoaded("settings_emulator_bypass", EMULATOR_BYPASS_URL) end
 end)
 ------------------------------------------------------------
