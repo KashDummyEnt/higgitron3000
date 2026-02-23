@@ -329,7 +329,7 @@ addStroke(close, 1, CONFIG.Stroke, 0.25)
 -- TAB BAR (CENTERED)
 ------------------------------------------------------------
 
-local TAB_WIDTH = 110
+local TAB_WIDTH = 90
 local TAB_GAP = 8
 local TAB_COUNT = 5
 
@@ -454,7 +454,22 @@ local pages = {}
 local tabButtons = {}
 local currentTab = "Main"
 
-for _,name in ipairs(tabs) do
+-- repaint function (safe to call anytime)
+local function repaintAccent()
+	title.TextColor3 = CONFIG.Accent
+
+	for name, btn in pairs(tabButtons) do
+		if name == currentTab then
+			btn.BackgroundColor3 = CONFIG.Accent
+			btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+		else
+			btn.BackgroundColor3 = CONFIG.Bg2
+			btn.TextColor3 = CONFIG.Text
+		end
+	end
+end
+
+for _, name in ipairs(tabs) do
 	local pageData = makePage()
 	pages[name] = pageData
 
@@ -465,6 +480,7 @@ for _,name in ipairs(tabs) do
 		Size = UDim2.fromOffset(TAB_WIDTH, 34),
 		BackgroundColor3 = CONFIG.Bg2,
 		TextColor3 = CONFIG.Text,
+		AutoButtonColor = false,
 		Parent = tabBar,
 	})
 	addCorner(btn, 8)
@@ -474,13 +490,20 @@ for _,name in ipairs(tabs) do
 
 	btn.MouseButton1Click:Connect(function()
 		currentTab = name
-		for tab,data in pairs(pages) do
+
+		for tab, data in pairs(pages) do
 			data.Page.Visible = (tab == name)
 		end
+
+		repaintAccent()
 	end)
 end
 
+-- default visible page
 pages["Main"].Page.Visible = true
+
+-- initial color paint
+repaintAccent()
 ------------------------------------------------------------
 -- MAIN TAB
 ------------------------------------------------------------
@@ -687,6 +710,14 @@ Toggles.Subscribe("settings_rgb_accent", function(state)
 		startRGB()
 	else
 		stopRGB()
+	end
+end)
+
+-- Sync initial RGB state
+task.defer(function()
+	local state = Toggles.GetState("settings_rgb_accent", true)
+	if state then
+		startRGB()
 	end
 end)
 
