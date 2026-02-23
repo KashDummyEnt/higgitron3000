@@ -99,7 +99,7 @@ local RAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/r
 local WEATHER_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Weather.lua"
 local FASTMODE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/FastMode.lua"
 local AFTERIMAGE_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/AfterImageTrail.lua"
-local FREECAM_URL = "https://raw.githubusercontent.com/KashDummyEnt/higgitron3000/refs/heads/main/Features/Freecam.lua"
+
 
 
 local function loadModule(url)
@@ -652,22 +652,6 @@ Toggles.AddToggleCard(
 	end
 )
 
-Toggles.AddToggleCard(
-	pages["Misc"].Left,
-	"misc_freecam",
-	"Freecam",
-	"Detach camera and fly freely.",
-	5,
-	false,
-	CONFIG,
-	SERVICES,
-	function(state)
-		if state then
-			ensureFeatureLoaded("misc_freecam", FREECAM_URL)
-		end
-	end
-)
-
 ------------------------------------------------------------
 -- SETTINGS TAB
 ------------------------------------------------------------
@@ -734,7 +718,7 @@ task.defer(function()
 	local state = Toggles.GetState("settings_rgb_accent", true)
 	if state then
 		startRGB()
-	end
+	end  
 end)
 
 ------------------------------------------------------------
@@ -750,11 +734,20 @@ DragController.Attach(header, popupGroup, UserInputService)
 local function setMenuState(state: boolean)
 	popupGroup.Visible = state
 	inputBlocker.Visible = state
-	
+
 	if state then
+		-- Unlock + show mouse
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		UserInputService.MouseIconEnabled = true
+
+		-- Force it every frame while menu is open
+		RunService:BindToRenderStep("MenuMouseLock", Enum.RenderPriority.Input.Value, function()
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		end)
 	else
+		RunService:UnbindFromRenderStep("MenuMouseLock")
+
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 		UserInputService.MouseIconEnabled = false
 	end
