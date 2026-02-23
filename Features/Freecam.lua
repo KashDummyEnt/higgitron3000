@@ -1,6 +1,6 @@
 --!strict
 -- Freecam.lua
--- Mobile + KBM Supported Local Freecam
+-- Stable Mobile + KBM Local Freecam (No Player Movement)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,6 +8,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
+local cam = workspace.CurrentCamera
 
 ------------------------------------------------------------------
 -- TOGGLE API
@@ -47,12 +48,13 @@ local KEY = "misc_freecam"
 
 local BASE_SPEED = 80
 local BOOST_MULT = 2
-local ACCEL = 10
+local ACCEL = 12
 local DECEL = 14
-local TURN_SENS = 0.25
+local TURN_SENS_MOUSE = 0.0025
+local TURN_SENS_TOUCH = 0.003
 
 ------------------------------------------------------------------
--- STATE
+-- SAFETY
 ------------------------------------------------------------------
 
 if G.__HIGGI_FREECAM and G.__HIGGI_FREECAM.Cleanup then
@@ -62,23 +64,26 @@ end
 G.__HIGGI_FREECAM = {}
 local State = G.__HIGGI_FREECAM
 
-local cam = workspace.CurrentCamera
+------------------------------------------------------------------
+-- STATE
+------------------------------------------------------------------
+
 local running = false
 local boosting = false
-
 local moveUp = false
 local moveDown = false
 
-local moveVector = Vector3.zero
-local currentVel = Vector3.zero
-
 local rotX = 0
 local rotY = 0
+
+local currentVel = Vector3.zero
 
 local hbConn: RBXScriptConnection? = nil
 local inputConn: RBXScriptConnection? = nil
 
 local Controls = nil
+local originalWalkSpeed = 16
+local originalJumpPower = 50
 
 ------------------------------------------------------------------
 -- MOBILE CONTROLS
@@ -99,6 +104,7 @@ end
 ------------------------------------------------------------------
 
 local function bindVertical()
+
 	ContextActionService:BindAction("FreecamUp", function(_, state)
 		moveUp = (state == Enum.UserInputState.Begin or state == Enum.UserInputState.Change)
 		return Enum.ContextActionResult.Sink
@@ -113,6 +119,7 @@ local function bindVertical()
 		boosting = (state == Enum.UserInputState.Begin or state == Enum.UserInputState.Change)
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.LeftShift)
+
 end
 
 local function unbindVertical()
@@ -129,6 +136,7 @@ end
 ------------------------------------------------------------------
 
 local function stopFreecam()
+
 	if not running then return end
 	running = false
 
@@ -137,12 +145,28 @@ local function stopFreecam()
 
 	unbindVertical()
 
+	-- restore camera
 	cam.CameraType = Enum.CameraType.Custom
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	UserInputService.MouseIconEnabled = true
 
+	-- restore humanoid movement
+	local char = LocalPlayer.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = originalWalkSpeed
+			hum.JumpPower = originalJumpPower
+			hum.AutoRotate = true
+		end
+	end
+
+	-- re-enable default controls
+	if Controls and Controls.Enable then
+		Controls:Enable()
+	end
+
 	currentVel = Vector3.zero
-	moveVector = Vector3.zero
 end
 
 ------------------------------------------------------------------
@@ -150,13 +174,34 @@ end
 ------------------------------------------------------------------
 
 local function startFreecam()
+
 	if running then return end
 	running = true
+
+	local char = LocalPlayer.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			originalWalkSpeed = hum.WalkSpeed
+			originalJumpPower = hum.JumpPower
+
+			hum.WalkSpeed = 0
+			hum.JumpPower = 0
+			hum.AutoRotate = false
+		end
+	end
+
+	-- disable default controls
+	if Controls and Controls.Disable then
+		Controls:Disable()
+	end
 
 	cam.CameraType = Enum.CameraType.Scriptable
 
 	local cf = cam.CFrame
-	rotX, rotY = cf:ToOrientation()
+	local _, y, x = cf:ToOrientation()
+	rotX = x
+	rotY = y
 
 	bindVertical()
 
@@ -164,44 +209,38 @@ local function startFreecam()
 	UserInputService.MouseIconEnabled = false
 
 	inputConn = UserInputService.InputChanged:Connect(function(input)
+
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			rotY -= input.Delta.X * TURN_SENS * 0.01
-			rotX -= input.Delta.Y * TURN_SENS * 0.01
+			rotY -= input.Delta.X * TURN_SENS_MOUSE
+			rotX -= input.Delta.Y * TURN_SENS_MOUSE
 			rotX = math.clamp(rotX, -1.5, 1.5)
 		end
 
 		if input.UserInputType == Enum.UserInputType.Touch then
-			rotY -= input.Delta.X * 0.002
-			rotX -= input.Delta.Y * 0.002
+			rotY -= input.Delta.X * TURN_SENS_TOUCH
+			rotX -= input.Delta.Y * TURN_SENS_TOUCH
 			rotX = math.clamp(rotX, -1.5, 1.5)
 		end
+
 	end)
 
-	hbConn = RunService.Heartbeat:Connect(function(dt)
+	hbConn = RunService.RenderStepped:Connect(function(dt)
 
 		local mv = Vector3.zero
 
 		if Controls and Controls.GetMoveVector then
 			local raw = Controls:GetMoveVector()
 			mv = Vector3.new(raw.X, 0, -raw.Z)
-		else
-			local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-			if hum then
-				mv = Vector3.new(hum.MoveDirection.X, 0, hum.MoveDirection.Z)
-			end
 		end
 
-		local y = 0
-		if moveUp then y += 1 end
-		if moveDown then y -= 1 end
+		local yMove = 0
+		if moveUp then yMove += 1 end
+		if moveDown then yMove -= 1 end
 
-		local camCF =
-			CFrame.new(cam.CFrame.Position)
-			* CFrame.Angles(0, rotY, 0)
-			* CFrame.Angles(rotX, 0, 0)
+		local camRot = CFrame.Angles(0, rotY, 0) * CFrame.Angles(rotX, 0, 0)
 
-		local forward = camCF.LookVector
-		local right = camCF.RightVector
+		local forward = camRot.LookVector
+		local right = camRot.RightVector
 
 		local desired = (right * mv.X + forward * mv.Z)
 		if desired.Magnitude > 1 then
@@ -209,15 +248,17 @@ local function startFreecam()
 		end
 
 		local speed = BASE_SPEED * (boosting and BOOST_MULT or 1)
-		local targetVel = (desired * speed) + Vector3.new(0, y * speed, 0)
+		local targetVel = (desired * speed) + Vector3.new(0, yMove * speed, 0)
 
 		local rate = (targetVel.Magnitude > currentVel.Magnitude) and ACCEL or DECEL
 		local alpha = math.clamp(rate * dt, 0, 1)
 		currentVel = currentVel:Lerp(targetVel, alpha)
 
 		local newPos = cam.CFrame.Position + currentVel * dt
-		cam.CFrame = CFrame.new(newPos) * CFrame.Angles(0, rotY, 0) * CFrame.Angles(rotX, 0, 0)
+		cam.CFrame = CFrame.new(newPos) * camRot
+
 	end)
+
 end
 
 ------------------------------------------------------------------
