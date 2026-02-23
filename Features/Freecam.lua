@@ -1,6 +1,6 @@
 --!strict
 -- Freecam.lua
--- Stable Mobile + KBM Local Freecam (No Player Movement)
+-- Stable Heartbeat Freecam (No Snap + Fast Rotation)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -46,12 +46,13 @@ end
 
 local KEY = "misc_freecam"
 
-local BASE_SPEED = 80
+local BASE_SPEED = 100
 local BOOST_MULT = 2
-local ACCEL = 12
-local DECEL = 14
-local TURN_SENS_MOUSE = 0.0025
-local TURN_SENS_TOUCH = 0.003
+local ACCEL = 14
+local DECEL = 16
+
+local TURN_SENS_MOUSE = 0.004
+local TURN_SENS_TOUCH = 0.005
 
 ------------------------------------------------------------------
 -- SAFETY
@@ -73,8 +74,9 @@ local boosting = false
 local moveUp = false
 local moveDown = false
 
-local rotX = 0
-local rotY = 0
+local camPos = Vector3.zero
+local yaw = 0
+local pitch = 0
 
 local currentVel = Vector3.zero
 
@@ -145,12 +147,10 @@ local function stopFreecam()
 
 	unbindVertical()
 
-	-- restore camera
 	cam.CameraType = Enum.CameraType.Custom
 	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 	UserInputService.MouseIconEnabled = true
 
-	-- restore humanoid movement
 	local char = LocalPlayer.Character
 	if char then
 		local hum = char:FindFirstChildOfClass("Humanoid")
@@ -161,7 +161,6 @@ local function stopFreecam()
 		end
 	end
 
-	-- re-enable default controls
 	if Controls and Controls.Enable then
 		Controls:Enable()
 	end
@@ -184,24 +183,23 @@ local function startFreecam()
 		if hum then
 			originalWalkSpeed = hum.WalkSpeed
 			originalJumpPower = hum.JumpPower
-
 			hum.WalkSpeed = 0
 			hum.JumpPower = 0
 			hum.AutoRotate = false
 		end
 	end
 
-	-- disable default controls
 	if Controls and Controls.Disable then
 		Controls:Disable()
 	end
 
 	cam.CameraType = Enum.CameraType.Scriptable
 
-	local cf = cam.CFrame
-	local _, y, x = cf:ToOrientation()
-	rotX = x
-	rotY = y
+	camPos = cam.CFrame.Position
+
+	local look = cam.CFrame.LookVector
+	yaw = math.atan2(-look.X, -look.Z)
+	pitch = math.asin(look.Y)
 
 	bindVertical()
 
@@ -211,23 +209,22 @@ local function startFreecam()
 	inputConn = UserInputService.InputChanged:Connect(function(input)
 
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			rotY -= input.Delta.X * TURN_SENS_MOUSE
-			rotX -= input.Delta.Y * TURN_SENS_MOUSE
-			rotX = math.clamp(rotX, -1.5, 1.5)
+			yaw -= input.Delta.X * TURN_SENS_MOUSE
+			pitch -= input.Delta.Y * TURN_SENS_MOUSE
 		end
 
 		if input.UserInputType == Enum.UserInputType.Touch then
-			rotY -= input.Delta.X * TURN_SENS_TOUCH
-			rotX -= input.Delta.Y * TURN_SENS_TOUCH
-			rotX = math.clamp(rotX, -1.5, 1.5)
+			yaw -= input.Delta.X * TURN_SENS_TOUCH
+			pitch -= input.Delta.Y * TURN_SENS_TOUCH
 		end
+
+		pitch = math.clamp(pitch, -1.5, 1.5)
 
 	end)
 
-	hbConn = RunService.RenderStepped:Connect(function(dt)
+	hbConn = RunService.Heartbeat:Connect(function(dt)
 
 		local mv = Vector3.zero
-
 		if Controls and Controls.GetMoveVector then
 			local raw = Controls:GetMoveVector()
 			mv = Vector3.new(raw.X, 0, -raw.Z)
@@ -237,10 +234,10 @@ local function startFreecam()
 		if moveUp then yMove += 1 end
 		if moveDown then yMove -= 1 end
 
-		local camRot = CFrame.Angles(0, rotY, 0) * CFrame.Angles(rotX, 0, 0)
+		local rotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
 
-		local forward = camRot.LookVector
-		local right = camRot.RightVector
+		local forward = rotation.LookVector
+		local right = rotation.RightVector
 
 		local desired = (right * mv.X + forward * mv.Z)
 		if desired.Magnitude > 1 then
@@ -254,8 +251,8 @@ local function startFreecam()
 		local alpha = math.clamp(rate * dt, 0, 1)
 		currentVel = currentVel:Lerp(targetVel, alpha)
 
-		local newPos = cam.CFrame.Position + currentVel * dt
-		cam.CFrame = CFrame.new(newPos) * camRot
+		camPos += currentVel * dt
+		cam.CFrame = CFrame.new(camPos) * rotation
 
 	end)
 
@@ -276,10 +273,6 @@ end)
 if Toggles.GetState(KEY, false) then
 	startFreecam()
 end
-
-------------------------------------------------------------------
--- CLEANUP
-------------------------------------------------------------------
 
 State.Cleanup = function()
 	stopFreecam()
