@@ -1,7 +1,8 @@
 --!strict
 -- HighlightSyncedESP.lua
--- 2D Box ESP + Vertical Health (Left) + Name + Snapline
--- Lower minimum size version
+-- 2D Box ESP + Green Health (Left) + Name + Snapline
+-- Skips LocalPlayer + Skips "BotRig"
+-- Clean snap destruction
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -16,6 +17,7 @@ print("=== 2D BOX ESP STARTED ===")
 ------------------------------------------------------------------
 
 local BLUE = Color3.fromRGB(0,120,255)
+local HEALTH_GREEN = Color3.fromRGB(0,255,0)
 
 local SNAP_THICKNESS = 0.05
 local SNAP_TRANSPARENCY = 0.15
@@ -23,7 +25,6 @@ local SNAP_TRANSPARENCY = 0.15
 local BOX_THICKNESS = 2
 local HEALTH_WIDTH = 2
 
--- Ultra minimal clamp (failsafe only)
 local MIN_BOX_HEIGHT = 6
 local MIN_BOX_WIDTH = 3
 
@@ -34,6 +35,12 @@ local MIN_BOX_WIDTH = 3
 local function isCharacterModel(model: Instance): boolean
 	if not model:IsA("Model") then return false end
 	return model:FindFirstChildOfClass("Humanoid") ~= nil
+end
+
+local function shouldSkip(model: Model, localChar: Model?): boolean
+	if model == localChar then return true end
+	if model.Name == "BotRig" then return true end
+	return false
 end
 
 local function isGreen(c: Color3): boolean
@@ -66,7 +73,13 @@ type ESPData = {
 	name: TextLabel,
 }
 
+type SnapData = {
+	part: BasePart,
+	ad: BoxHandleAdornment,
+}
+
 local espByModel: {[Model]: ESPData} = {}
+local snapByModel: {[Model]: SnapData} = {}
 
 ------------------------------------------------------------------
 -- GUI ROOT
@@ -100,6 +113,7 @@ local function createESP(model: Model): ESPData
 
 	local healthFill = Instance.new("Frame")
 	healthFill.BorderSizePixel = 0
+	healthFill.BackgroundColor3 = HEALTH_GREEN
 	healthFill.Parent = healthBg
 
 	local name = Instance.new("TextLabel")
@@ -126,15 +140,8 @@ local function getESP(model: Model): ESPData
 end
 
 ------------------------------------------------------------------
--- SNAP STORAGE
+-- SNAP
 ------------------------------------------------------------------
-
-type SnapData = {
-	part: BasePart,
-	ad: BoxHandleAdornment,
-}
-
-local snapByModel: {[Model]: SnapData} = {}
 
 local function createSnap(model: Model): SnapData
 	local p = Instance.new("Part")
@@ -152,7 +159,7 @@ local function createSnap(model: Model): SnapData
 	ad.AlwaysOnTop = true
 	ad.ZIndex = 10
 	ad.Transparency = SNAP_TRANSPARENCY
-	ad.Parent = workspace
+	ad.Parent = p
 
 	local data: SnapData = {
 		part = p,
@@ -165,6 +172,24 @@ end
 
 local function getSnap(model: Model): SnapData
 	return snapByModel[model] or createSnap(model)
+end
+
+------------------------------------------------------------------
+-- CLEANUP
+------------------------------------------------------------------
+
+local function destroyESP(model: Model)
+	local esp = espByModel[model]
+	if esp then
+		esp.box:Destroy()
+		espByModel[model] = nil
+	end
+
+	local snap = snapByModel[model]
+	if snap then
+		snap.part:Destroy()
+		snapByModel[model] = nil
+	end
 end
 
 ------------------------------------------------------------------
@@ -182,19 +207,24 @@ RunService.RenderStepped:Connect(function()
 
 	local origin = localRoot.Position - Vector3.new(0, localHum.HipHeight + (localRoot.Size.Y / 2), 0)
 
+	-- Cleanup models removed from workspace
+	for model, _ in pairs(espByModel) do
+		if not model:IsDescendantOf(workspace) then
+			destroyESP(model)
+		end
+	end
+
 	for _, model in ipairs(workspace:GetDescendants()) do
 		if not model:IsA("Model") then continue end
 		if not isCharacterModel(model) then continue end
-		if model == localChar then continue end
+		if shouldSkip(model, localChar) then continue end
 
 		local hum = model:FindFirstChildOfClass("Humanoid")
 		local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local head = model:FindFirstChild("Head") :: BasePart?
 
 		if not hum or not root or not head or hum.Health <= 0 then
-			if espByModel[model] then
-				espByModel[model].box.Visible = false
-			end
+			destroyESP(model)
 			continue
 		end
 
@@ -243,17 +273,16 @@ RunService.RenderStepped:Connect(function()
 
 		esp.healthFill.Size = UDim2.new(1,0, hpPercent,0)
 		esp.healthFill.Position = UDim2.new(0,0, 1-hpPercent,0)
-		esp.healthFill.BackgroundColor3 = color
+		esp.healthFill.BackgroundColor3 = HEALTH_GREEN
 
-		local targetFeet = bottom3D
-		local dir = targetFeet - origin
+		local dir = bottom3D - origin
 		local len = dir.Magnitude
 
 		if len > 0.1 then
 			local mid = origin + dir*0.5
 			local snap = getSnap(model)
 
-			snap.part.CFrame = CFrame.lookAt(mid, targetFeet)
+			snap.part.CFrame = CFrame.lookAt(mid, bottom3D)
 			snap.ad.Size = Vector3.new(SNAP_THICKNESS,SNAP_THICKNESS,len)
 			snap.ad.Color3 = color
 		end
