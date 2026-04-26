@@ -300,7 +300,7 @@ local header = make("Frame", {
 })
 
 local title = make("TextLabel", {
-	Text = "EBTware",
+	Text = "EBTware - Zombies",
 	Font = Enum.Font.GothamBlack,
 	TextSize = 22,
 	TextColor3 = CONFIG.Accent,
