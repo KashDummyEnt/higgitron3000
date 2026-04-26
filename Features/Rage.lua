@@ -73,7 +73,12 @@ local function getZombiesFolder(): Instance?
 end
 
 local function isZombieModel(model: Instance): boolean
-	return model:IsA("Model") and model.Name == "Zombie"
+	if not model:IsA("Model") then return false end
+
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if not hum then return false end
+
+	return model:IsDescendantOf(workspace:WaitForChild("Zombies"))
 end
 
 local function isAliveZombie(model: Model): boolean
