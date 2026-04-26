@@ -12,6 +12,7 @@ local LocalPlayer = Players.LocalPlayer
 -- DEFAULTS
 ----------------------------------------------------
 
+local fov = 120
 local smoothness = 0.18
 
 ----------------------------------------------------
@@ -49,6 +50,7 @@ end
 ----------------------------------------------------
 
 local connection: RBXScriptConnection? = nil
+local fovGui: ScreenGui? = nil
 local autoWallEnabled = false
 
 local currentTarget: BasePart? = nil
@@ -62,6 +64,61 @@ local Camera = workspace.CurrentCamera or workspace:WaitForChild("Camera")
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
 	Camera = workspace.CurrentCamera or Camera
 end)
+
+----------------------------------------------------
+-- FOV CIRCLE
+----------------------------------------------------
+
+local function getFovCircleFrame(): Frame?
+	if not fovGui then return nil end
+	local circle = fovGui:FindFirstChild("Circle")
+	if circle and circle:IsA("Frame") then
+		return circle
+	end
+	return nil
+end
+
+local function applyFovToCircle()
+	local circle = getFovCircleFrame()
+	if not circle then return end
+	circle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+end
+
+local function createFov()
+	if fovGui then return end
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "RageFovGui"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+	local circle = Instance.new("Frame")
+	circle.Name = "Circle"
+	circle.AnchorPoint = Vector2.new(0.5, 0.5)
+	circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+	circle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+	circle.BackgroundTransparency = 1
+	circle.Parent = gui
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Parent = circle
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = circle
+
+	fovGui = gui
+end
+
+local function destroyFov()
+	if fovGui then
+		fovGui:Destroy()
+		fovGui = nil
+	end
+end
 
 ----------------------------------------------------
 -- NPC HELPERS
@@ -140,6 +197,9 @@ local function getClosestTarget(): BasePart?
 	local zombiesFolder = getZombiesFolder()
 	if not zombiesFolder then return nil end
 
+	local viewport = Camera.ViewportSize
+	local center = Vector2.new(viewport.X * 0.5, viewport.Y * 0.5)
+
 	local bestPart: BasePart? = nil
 	local bestWorldDist = math.huge
 
@@ -158,6 +218,14 @@ local function getClosestTarget(): BasePart?
 				continue
 			end
 		end
+
+		local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+		if not onScreen or screenPos.Z <= 0 then continue end
+
+		local dx = screenPos.X - center.X
+		local dy = screenPos.Y - center.Y
+		local dist2 = dx * dx + dy * dy
+		if dist2 > fov * fov then continue end
 
 		local worldDist = (part.Position - root.Position).Magnitude
 
@@ -190,18 +258,15 @@ end
 
 local function rotateCharacterTowards(targetPos: Vector3)
 	if not LocalPlayer.Character then return end
-	if not Camera then return end
 
 	local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not root or not root:IsA("BasePart") then return end
+	if not root then return end
 
 	local rootPos = root.Position
-	local look = Camera.CFrame.LookVector
-	local flatLook = Vector3.new(look.X, 0, look.Z)
+	local flatTarget = Vector3.new(targetPos.X, rootPos.Y, targetPos.Z)
 
-	if flatLook.Magnitude <= 0.001 then return end
-
-	root.CFrame = CFrame.new(rootPos, rootPos + flatLook.Unit)
+	local desired = CFrame.new(rootPos, flatTarget)
+	root.CFrame = root.CFrame:Lerp(desired, 1 - smoothness)
 end
 
 ----------------------------------------------------
@@ -211,7 +276,11 @@ end
 local function start()
 	if connection then return end
 
+	createFov()
+	applyFovToCircle()
+
 	connection = RunService.RenderStepped:Connect(function()
+
 		local newTarget = getClosestTarget()
 
 		-- Release lock if target lost
@@ -244,6 +313,7 @@ local function start()
 				hum.AutoRotate = true
 			end
 		end
+
 	end)
 end
 
@@ -261,6 +331,7 @@ local function stop()
 	end
 
 	currentTarget = nil
+	destroyFov()
 end
 
 ----------------------------------------------------
@@ -268,8 +339,15 @@ end
 ----------------------------------------------------
 
 local function applyFromStore()
+	fov = Toggles.GetValue("combat_rage_fov", 120)
 	smoothness = Toggles.GetValue("combat_rage_smooth", 0.18)
+	applyFovToCircle()
 end
+
+Toggles.SubscribeValue("combat_rage_fov", function(v)
+	fov = v
+	applyFovToCircle()
+end)
 
 Toggles.SubscribeValue("combat_rage_smooth", function(v)
 	smoothness = v
@@ -298,13 +376,3 @@ if Toggles.GetState("combat_rage", false) then
 end
 
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
-
-
-
-
-
-
-
-
-
-
