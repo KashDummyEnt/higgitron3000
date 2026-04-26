@@ -376,3 +376,8 @@ autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
 
 
 
+
+
+
+
+
