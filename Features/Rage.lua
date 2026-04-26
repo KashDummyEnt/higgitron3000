@@ -51,6 +51,7 @@ end
 
 local connection: RBXScriptConnection? = nil
 local fovGui: ScreenGui? = nil
+local teamCheckEnabled = true
 local autoWallEnabled = false
 
 local currentTarget: BasePart? = nil
@@ -64,6 +65,42 @@ local Camera = workspace.CurrentCamera or workspace:WaitForChild("Camera")
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
 	Camera = workspace.CurrentCamera or Camera
 end)
+
+----------------------------------------------------
+-- TEAM DETECTION
+----------------------------------------------------
+
+local function isEnemy(plr: Player): boolean
+	if plr == LocalPlayer then
+		return false
+	end
+
+	if not teamCheckEnabled then
+		return true
+	end
+
+	if LocalPlayer.Team and plr.Team then
+		return plr.Team ~= LocalPlayer.Team
+	end
+
+	if LocalPlayer.TeamColor and plr.TeamColor then
+		return plr.TeamColor ~= LocalPlayer.TeamColor
+	end
+
+	local localAttrTeam = LocalPlayer:GetAttribute("Team")
+	local plrAttrTeam = plr:GetAttribute("Team")
+	if localAttrTeam ~= nil and plrAttrTeam ~= nil then
+		return localAttrTeam ~= plrAttrTeam
+	end
+
+	local localFaction = LocalPlayer:GetAttribute("Faction")
+	local plrFaction = plr:GetAttribute("Faction")
+	if localFaction ~= nil and plrFaction ~= nil then
+		return localFaction ~= plrFaction
+	end
+
+	return true
+end
 
 ----------------------------------------------------
 -- FOV CIRCLE
@@ -121,34 +158,20 @@ local function destroyFov()
 end
 
 ----------------------------------------------------
--- NPC HELPERS
+-- HELPERS
 ----------------------------------------------------
 
-local function getZombiesFolder(): Instance?
-	return workspace:FindFirstChild("Zombies")
-end
-
-local function isZombieModel(model: Instance): boolean
-	return model:IsA("Model") and model.Name == "Zombie"
-end
-
-local function isAliveZombie(model: Model): boolean
-	local hum = model:FindFirstChildOfClass("Humanoid")
+local function isAlive(plr: Player): boolean
+	local char = plr.Character
+	if not char then return false end
+	local hum = char:FindFirstChildOfClass("Humanoid")
 	return hum ~= nil and hum.Health > 0
 end
 
-local function getAimPartFromZombie(model: Model): BasePart?
-	local head = model:FindFirstChild("Head")
-	if head and head:IsA("BasePart") then
-		return head
-	end
-
-	local root = model:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		return root
-	end
-
-	return nil
+local function getAimPart(plr: Player): BasePart?
+	local char = plr.Character
+	if not char then return nil end
+	return char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
 end
 
 ----------------------------------------------------
@@ -194,23 +217,17 @@ local function getClosestTarget(): BasePart?
 	local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if not root then return nil end
 
-	local zombiesFolder = getZombiesFolder()
-	if not zombiesFolder then return nil end
-
 	local viewport = Camera.ViewportSize
 	local center = Vector2.new(viewport.X * 0.5, viewport.Y * 0.5)
 
 	local bestPart: BasePart? = nil
 	local bestWorldDist = math.huge
 
-	for _, npc in ipairs(zombiesFolder:GetChildren()) do
-		if not isZombieModel(npc) then continue end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if not isEnemy(plr) then continue end
+		if not isAlive(plr) then continue end
 
-		local zombie = npc :: Model
-
-		if not isAliveZombie(zombie) then continue end
-
-		local part = getAimPartFromZombie(zombie)
+		local part = getAimPart(plr)
 		if not part then continue end
 
 		if not autoWallEnabled then
@@ -317,6 +334,7 @@ local function start()
 	end)
 end
 
+
 local function stop()
 	if connection then
 		connection:Disconnect()
@@ -367,6 +385,10 @@ Toggles.Subscribe("combat_rage", function(state)
 	end
 end)
 
+Toggles.Subscribe("combat_rage_teamcheck", function(state)
+	teamCheckEnabled = state
+end)
+
 Toggles.Subscribe("combat_rage_autowall", function(state)
 	autoWallEnabled = state
 end)
@@ -375,10 +397,5 @@ if Toggles.GetState("combat_rage", false) then
 	start()
 end
 
+teamCheckEnabled = Toggles.GetState("combat_rage_teamcheck", true)
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
-
-
-
-
-
-
