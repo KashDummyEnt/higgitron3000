@@ -513,7 +513,7 @@ Toggles.AddToggleCard(pages["Main"].Left, "combat_rage", "Rage Aimbot", "Auto-ai
 	if state then ensureFeatureLoaded("combat_rage", RAGE_URL) end
 end)
 
-Toggles.AddSliderCard(pages["Main"].Left, "combat_rage_fov", "Aim FOV", nil, 2, 20, 400, 120, 5, CONFIG, SERVICES)
+Toggles.AddSliderCard(pages["Main"].Left, "combat_rage_fov", "Aim FOV", nil, 2, 20, 4000, 120, 5, CONFIG, SERVICES)
 
 Toggles.AddSliderCard(pages["Main"].Left, "combat_rage_smooth", "Smooth", nil, 3, 0, 1, 0.18, 0.01, CONFIG, SERVICES)
 
