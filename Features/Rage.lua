@@ -399,3 +399,6 @@ end
 
 teamCheckEnabled = Toggles.GetState("combat_rage_teamcheck", true)
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
+
+
+
