@@ -49,9 +49,9 @@ end
 -- STATE
 ----------------------------------------------------
 
-local connection: RBXScriptConnection? = nil
+local aimBound = false
+local AIM_BIND_NAME = "HiggiRageAim"
 local fovGui: ScreenGui? = nil
-local teamCheckEnabled = true
 local autoWallEnabled = false
 
 local currentTarget: BasePart? = nil
@@ -65,42 +65,6 @@ local Camera = workspace.CurrentCamera or workspace:WaitForChild("Camera")
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
 	Camera = workspace.CurrentCamera or Camera
 end)
-
-----------------------------------------------------
--- TEAM DETECTION
-----------------------------------------------------
-
-local function isEnemy(plr: Player): boolean
-	if plr == LocalPlayer then
-		return false
-	end
-
-	if not teamCheckEnabled then
-		return true
-	end
-
-	if LocalPlayer.Team and plr.Team then
-		return plr.Team ~= LocalPlayer.Team
-	end
-
-	if LocalPlayer.TeamColor and plr.TeamColor then
-		return plr.TeamColor ~= LocalPlayer.TeamColor
-	end
-
-	local localAttrTeam = LocalPlayer:GetAttribute("Team")
-	local plrAttrTeam = plr:GetAttribute("Team")
-	if localAttrTeam ~= nil and plrAttrTeam ~= nil then
-		return localAttrTeam ~= plrAttrTeam
-	end
-
-	local localFaction = LocalPlayer:GetAttribute("Faction")
-	local plrFaction = plr:GetAttribute("Faction")
-	if localFaction ~= nil and plrFaction ~= nil then
-		return localFaction ~= plrFaction
-	end
-
-	return true
-end
 
 ----------------------------------------------------
 -- FOV CIRCLE
@@ -158,20 +122,34 @@ local function destroyFov()
 end
 
 ----------------------------------------------------
--- HELPERS
+-- NPC HELPERS
 ----------------------------------------------------
 
-local function isAlive(plr: Player): boolean
-	local char = plr.Character
-	if not char then return false end
-	local hum = char:FindFirstChildOfClass("Humanoid")
+local function getZombiesFolder(): Instance?
+	return workspace:FindFirstChild("Zombies")
+end
+
+local function isZombieModel(model: Instance): boolean
+	return model:IsA("Model") and model.Name == "Zombie"
+end
+
+local function isAliveZombie(model: Model): boolean
+	local hum = model:FindFirstChildOfClass("Humanoid")
 	return hum ~= nil and hum.Health > 0
 end
 
-local function getAimPart(plr: Player): BasePart?
-	local char = plr.Character
-	if not char then return nil end
-	return char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+local function getAimPartFromZombie(model: Model): BasePart?
+	local head = model:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		return head
+	end
+
+	local root = model:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+
+	return nil
 end
 
 ----------------------------------------------------
@@ -217,17 +195,23 @@ local function getClosestTarget(): BasePart?
 	local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if not root then return nil end
 
+	local zombiesFolder = getZombiesFolder()
+	if not zombiesFolder then return nil end
+
 	local viewport = Camera.ViewportSize
 	local center = Vector2.new(viewport.X * 0.5, viewport.Y * 0.5)
 
 	local bestPart: BasePart? = nil
 	local bestWorldDist = math.huge
 
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if not isEnemy(plr) then continue end
-		if not isAlive(plr) then continue end
+	for _, npc in ipairs(zombiesFolder:GetChildren()) do
+		if not isZombieModel(npc) then continue end
 
-		local part = getAimPart(plr)
+		local zombie = npc :: Model
+
+		if not isAliveZombie(zombie) then continue end
+
+		local part = getAimPartFromZombie(zombie)
 		if not part then continue end
 
 		if not autoWallEnabled then
@@ -291,23 +275,22 @@ end
 ----------------------------------------------------
 
 local function start()
-	if connection then return end
+	if aimBound then return end
 
 	createFov()
 	applyFovToCircle()
 
-	connection = RunService.RenderStepped:Connect(function()
+	aimBound = true
 
+	RunService:BindToRenderStep(AIM_BIND_NAME, Enum.RenderPriority.Camera.Value + 1, function()
 		local newTarget = getClosestTarget()
 
-		-- Release lock if target lost
 		if currentTarget then
 			if not newTarget or newTarget ~= currentTarget then
 				currentTarget = nil
 			end
 		end
 
-		-- Acquire new target
 		if not currentTarget and newTarget then
 			currentTarget = newTarget
 		end
@@ -316,7 +299,6 @@ local function start()
 		local hum = character and character:FindFirstChildOfClass("Humanoid")
 
 		if currentTarget then
-			-- Disable auto rotate ONLY while locked
 			if hum then
 				hum.AutoRotate = false
 			end
@@ -325,23 +307,19 @@ local function start()
 			smoothLookAt(pos)
 			rotateCharacterTowards(pos)
 		else
-			-- Restore normal player rotation when not locked
 			if hum then
 				hum.AutoRotate = true
 			end
 		end
-
 	end)
 end
 
-
 local function stop()
-	if connection then
-		connection:Disconnect()
-		connection = nil
+	if aimBound then
+		RunService:UnbindFromRenderStep(AIM_BIND_NAME)
+		aimBound = false
 	end
 
-	-- Restore AutoRotate when rage disabled
 	local character = LocalPlayer.Character
 	local hum = character and character:FindFirstChildOfClass("Humanoid")
 	if hum then
@@ -385,10 +363,6 @@ Toggles.Subscribe("combat_rage", function(state)
 	end
 end)
 
-Toggles.Subscribe("combat_rage_teamcheck", function(state)
-	teamCheckEnabled = state
-end)
-
 Toggles.Subscribe("combat_rage_autowall", function(state)
 	autoWallEnabled = state
 end)
@@ -397,12 +371,4 @@ if Toggles.GetState("combat_rage", false) then
 	start()
 end
 
-teamCheckEnabled = Toggles.GetState("combat_rage_teamcheck", true)
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
-
-
-
-
-
-
-
