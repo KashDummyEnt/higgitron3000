@@ -295,3 +295,6 @@ if Toggles.GetState("combat_rage", false) then
 end
 
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
+
+
+
