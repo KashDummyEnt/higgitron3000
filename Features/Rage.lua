@@ -190,15 +190,18 @@ end
 
 local function rotateCharacterTowards(targetPos: Vector3)
 	if not LocalPlayer.Character then return end
+	if not Camera then return end
 
 	local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	if not root or not root:IsA("BasePart") then return end
 
 	local rootPos = root.Position
-	local flatTarget = Vector3.new(targetPos.X, rootPos.Y, targetPos.Z)
+	local look = Camera.CFrame.LookVector
+	local flatLook = Vector3.new(look.X, 0, look.Z)
 
-	local desired = CFrame.new(rootPos, flatTarget)
-	root.CFrame = root.CFrame:Lerp(desired, 1 - smoothness)
+	if flatLook.Magnitude <= 0.001 then return end
+
+	root.CFrame = CFrame.new(rootPos, rootPos + flatLook.Unit)
 end
 
 ----------------------------------------------------
@@ -295,6 +298,3 @@ if Toggles.GetState("combat_rage", false) then
 end
 
 autoWallEnabled = Toggles.GetState("combat_rage_autowall", false)
-
-
-
